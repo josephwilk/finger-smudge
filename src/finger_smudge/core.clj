@@ -1,11 +1,15 @@
-(ns fingersmudge.core
+(ns finger-smudge.core
   (:require [clojure.java.shell :as shell]
-            [fingersmudge.musicbrainz :as musicbrainz])
+            [finger-smudge.musicbrainz :as musicbrainz]
+            [finger-smudge.music-maker :as music-maker])
   (:gen-class))
 
 ;;https://acoustid.org/chromaprint
 (def fingerprinter "fpcalc")
-(def tracks ["resources/136_think.wav"])
+(def api-rate 1000)
+(def tracks ["resources/136_think_8bits.wav"
+             "resources/chipzel-only-human.wav"
+             "resources/136_think.wav"])
 
 (defn fingerprinter-data [data]
   (let [lines (clojure.string/split data #"\n")
@@ -25,26 +29,29 @@
 
 (defn fitness [duration candidate-fingerprint]
   (let [matches (musicbrainz/lookup duration candidate-fingerprint)]
-    (:score matches)))
+    matches))
 
-(defn generate-candidate [] "resources/136_think.wav")
+(defn generate-candidate [dur]
+  (let [dur (Integer/parseInt dur)]
+    (music-maker/and-we-are-the-dreamer-of-the-dreams dur)))
 
 (defn build-tracks [duration target-fingerprint]
   (println "seconds" duration)
-  (loop [candidate (generate-candidate)]
+  (loop [candidate (generate-candidate duration)]
     (let [candidate-fingerprint (generate-fingerprint candidate)
-          score (fitness duration (:fingerprint candidate-fingerprint))]
+          score-data (fitness duration (:fingerprint candidate-fingerprint))
+          score (:score score-data)]
+      (Thread/sleep api-rate)
       (println "Candidate match: " score)
-
       (if (and
            candidate
+           score
            (< score 0.8))
-        (recur (generate-candidate))
-        (println "Match found: " score)))))
+        (recur (generate-candidate duration))
+        (println score-data)))))
 
 (defn -main [& args]
   (let [data (generate-fingerprint (first tracks))]
     (println "Seed:" (:file data))
-    (build-tracks (data :duration) (data :fingerprint))))
-
-(-main)
+    (build-tracks (data :duration) (data :fingerprint)))
+  (System/exit 0))

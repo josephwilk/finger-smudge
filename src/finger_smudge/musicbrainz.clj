@@ -1,29 +1,35 @@
-(ns fingersmudge.musicbrainz
+(ns finger-smudge.musicbrainz
   (:require [org.httpkit.client :as http]
             [cheshire.core :as json]))
 
-(def client "client=5lHdDMGkZAo")
+(defn client []
+  (when-let [api-key (-> (System/getenv "CLIENT"))]
+    (println "api key:" api-key)
+    (str "client=" api-key)))
+
 (def meta "meta=recordings+compress")
 (def endpoint "http://api.acoustid.org/v2/")
 (defn lookup [duration fingerprint]
-  (println "Query Musicbrainz:" (subs fingerprint 0 50) "...")
+  (println "Query Musicbrainz:" fingerprint "...")
   (let [request (http/get (str endpoint "lookup?"
-                               client "&"
+                               (client) "&"
                                meta "&"
                                "duration=" duration "&"
-                               "fingerprint=" fingerprint))]
-    (let [r (some->
-             @request
-             :body
-             json/decode
-             (get "results")
-             first)]
-      (if r
-        {:score (get r "score" 0.0)
-         :track (-> r (get "recordings") first (get "title"))
-         :artist (-> r (get "recordings") first (get "artists"))}
+                               "fingerprint=" fingerprint))
+        response @request]
+    (when (= (:status response) 200)
+      (let [r (some->
+               response
+               :body
+               json/decode
+               (get "results")
+               first)]
+        (if r
+          {:score (get r "score" 0.0)
+           :track (-> r (get "recordings") first (get "title"))
+           :artist (-> r (get "recordings") first (get "artists"))}
 
-        {:score 0.0}))))
+          {:score 0.0})))))
 
 
 (comment
