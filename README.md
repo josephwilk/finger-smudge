@@ -2,6 +2,10 @@
 
 ![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
 
+## Notes 
+
+Chromaprint Algorithm:
+
 1. FFT transform of audio.
 2. Frequencies => Musical notes (not octaves). Chroma features.
 3. 16x12 pixel window moving across image one pixel at a time
