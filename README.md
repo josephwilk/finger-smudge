@@ -1,6 +1,6 @@
 # Finger Smudge
 
-![Finger smudged](https://github.com/josephwilk/finger-smudge/tree/master/resources/finger-smudge.png)
+![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
 
 1. FFT transform of audio.
 2. Frequencies => Musical notes (not octaves). Chroma features.
