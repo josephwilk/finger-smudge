@@ -6,7 +6,7 @@
 
 Chromaprint Algorithm:
 
-1. FFT transform of audio.
+1. FFT transform of audio (sampling rate 11025 Hz, frame size is 4096 (0.371 s) with 2/3 overlap.)
 2. Frequencies => Musical notes (not octaves). Chroma features.
 3. 16x12 pixel window moving across image one pixel at a time
 4. Apply 16 filteres that capture intensity dirrerences across musical notes && time.
