@@ -6,6 +6,8 @@
 
 Chromaprint Algorithm:
 
+![Example spectro](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/spectro2.png)
+
 1. FFT transform of audio (sampling rate 11025 Hz, frame size is 4096 (0.371 s) with 2/3 overlap.)
 2. Frequencies => Musical notes (not octaves). Chroma features.
 3. 16x12 pixel window moving across image one pixel at a time
