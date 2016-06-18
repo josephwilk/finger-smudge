@@ -19,6 +19,7 @@ Chromaprint Algorithm:
 * [Chromaprint](https://bitbucket.org/acoustid/chromaprint)
 * [How Chromaprint works](https://oxygene.sk/2011/01/how-does-chromaprint-work/)
 * [Experiments in Overtone with spectral analysis / FFTs](https://github.com/mikera/spectral)
+* [Sonographic sound processing](http://designingsound.org/2013/04/sonographic-sound-processing/)
 
 ## License
 
