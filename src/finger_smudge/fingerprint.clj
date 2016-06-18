@@ -1,10 +1,41 @@
 (ns finger-smudge.fingerprint
   (:require [clojure.pprint :refer (cl-format)])
-
   (import java.awt.image.BufferedImage
           javax.imageio.ImageIO
-          java.io.File)
-  )
+          java.io.File))
+
+(def num-bands 12)
+(def max-freq 28)
+(def min-freq 3520)
+
+(defn- freq->octave [freq base]
+  (let [base (/ 440.0 16.0)]
+    (/ (Math/log (/ freq base)) (Math/log 2.0))))
+
+(defn- index->freq [i frame-size sample-rate]
+  (/ (* i sample-rate) frame-size))
+
+(defn- freq->index [freq frame-size sample-rate]
+  (Math/round (/ (* frame-size freq) sample-rate)))
+
+(defn- grey-code
+  "Grey codes [0 1 3 2]"
+  [i]
+  (get {0 0
+        1 1
+        2 3
+        3 2}
+       i))
+
+(defn reverse-filtering
+  "16 filters and each can produce an integer that can be encoded into 2 bits (using the Gray code). Combined 32 bits"
+  [int]
+  (let [filter-sets
+        (->> int
+             int->binary-string
+             (partition 2))
+        image-vals (map (fn [code] (grey-code code)))
+        ]))
 
 (defn int->binary-string [int]
   (vec

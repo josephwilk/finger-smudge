@@ -7,7 +7,8 @@
 ;;https://acoustid.org/chromaprint
 (def fingerprinter "fpcalc")
 (def api-rate 1000)
-(def tracks ["resources/136_think_8bits.wav"
+(def tracks ["resources/136_think_mono.wav"
+             "resources/136_think_8bits.wav"
              "resources/chipzel-only-human.wav"
              "resources/136_think.wav"])
 
