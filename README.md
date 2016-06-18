@@ -20,6 +20,8 @@ Chromaprint Algorithm:
 * [How Chromaprint works](https://oxygene.sk/2011/01/how-does-chromaprint-work/)
 * [Experiments in Overtone with spectral analysis / FFTs](https://github.com/mikera/spectral)
 * [Sonographic sound processing](http://designingsound.org/2013/04/sonographic-sound-processing/)
+* JTransforms FFT fast in Java https://sites.google.com/site/piotrwendykier/software/jtransforms
+* Clojure using JTransforms https://gist.github.com/scottdw/26e2491e53ebc28649f5
 
 ## License
 
