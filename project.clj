@@ -8,4 +8,12 @@
                  [http-kit "2.1.18"]
                  [cheshire "5.6.1"]
                  [org.craigandera/dynne "0.4.1"]
-                 [org.clojure/math.combinatorics "0.1.3"]])
+                 [org.clojure/math.combinatorics "0.1.3"]
+
+                 [org.imgscalr/imgscalr-lib "4.2"]
+                 [com.github.wendykierp/JTransforms "3.1"]
+
+                 [overtone "0.9.1"]
+                 [net.mikera/vectorz-clj "0.29.0"]
+                 [net.mikera/imagez "0.10.0"]
+                 ])
