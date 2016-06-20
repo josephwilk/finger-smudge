@@ -24,7 +24,7 @@
   (let [n (count sample-array)
         frame-size 4096
         half-length (quot frame-size 2)
-        height      700
+        frequency-range 700
 
         fft (mikera.matrixx.algo.FFT. (int frame-size)) ;; 4069
         window (double-array (* 2 frame-size))
@@ -32,12 +32,10 @@
         overlap   (- frame-size (quot frame-size 3))
         increment (- frame-size overlap)
 
-        iterations   (quot (- n frame-size) overlap)
-        spectrum-data (double-array (* height iterations))]
+        window-count  (quot (- n frame-size) overlap)
+        spectrum-data (double-array (* frequency-range window-count))]
 
-    (println :iterations iterations)
-
-    (dotimes [i iterations]
+    (dotimes [i window-count]
       ;; src  srcPos  dest destpos length
       (let [src-pos (* i overlap)]
         (System/arraycopy sample-array src-pos
@@ -46,15 +44,16 @@
 
       (.realForward fft window)
 
-      (dotimes [j height]
-        (aset spectrum-data (+ i (* j iterations))
+      (dotimes [j frequency-range]
+        (aset spectrum-data (+ i (* j window-count))
               (magnitude (aget window (* j 2))
                          (aget window (inc (* j 2)))))))
 
-    (Matrix/wrap height iterations spectrum-data)))
+    (Matrix/wrap frequency-range window-count spectrum-data)))
 
 (defn colour ^long [^double val]
   (let [lval (* (inc (Math/log val)) 0.9)]
+    (println val)
     (cond
      (<= lval 0.0) 0xFF00000
      (<= lval 1.0) (let [v (- lval 0.0)] (col/rgb 0.0 0.0 v))
@@ -72,14 +71,34 @@
            h (.getHeight bi)]
        (dotimes [x w]
          (dotimes [y h]
-           (.setRGB bi (int x) (- (dec h) (int y)) (unchecked-int (spec/heatmap (* 0.005 (.get M (int y) (int x)))))))))
+           (.setRGB bi
+                    (int x) (- (dec h) (int y))
+                    (unchecked-int (spec/heatmap (* 0.009 (.get M (int y) (int x)))))))))
      bi))
+
+(defn consume
+  "Consumes bufferedimage and generates a FFT matrix"
+  ([^AMatrix M  img-file]
+     (let [bi ^BufferedImage (img/load-image img-file)
+           w (.getWidth bi)
+           h (.getHeight bi)]
+       (dotimes [x w]
+         (dotimes [y h]
+           (let [rgb (.getRGB bi (int x) (- (dec h) (int y)))
+                 v (/ rgb 0.009) ;;Much more required here
+                 ]
+             (.set M (int y) (int x) v))
+           ))
+      M)))
+
 
 (def M (fft-matrix sample-double-data))
 
 (defn demo-code []
   (let [i (render (fft-matrix  sample-double-data))]
     (img/show i)
-    (img/write i (clojure.java.io/resource "image.png") "png" :quality 1.0)))
+    (img/write i "image.png" "png" :quality 1.0)))
 
 (demo-code)
+
+(def fft-from-image (consume M "image.png"))
