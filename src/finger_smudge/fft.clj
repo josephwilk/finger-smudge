@@ -51,6 +51,36 @@
 
     (Matrix/wrap frequency-range window-count spectrum-data)))
 
+(defn matrix->sample-data [m sample-array]
+  (let [n (count sample-array)
+        frame-size 4096
+        half-length (quot frame-size 2)
+        frequency-range 700
+
+        fft (mikera.matrixx.algo.FFT. (int frame-size)) ;; 4069
+        window (double-array (* 2 frame-size))
+
+        overlap   (- frame-size (quot frame-size 3))
+        increment (- frame-size overlap)
+
+        window-count  (quot (- n frame-size) overlap)
+        spectrum-data (double-array n)]
+
+    (dotimes [i window-count]
+      ;; src  srcPos  dest destpos length
+      (let [src-pos (* i overlap)]
+        (System/arraycopy sample-array src-pos
+                          window 0
+                          frame-size))
+
+      (.realInverse fft window true)
+
+      (dotimes [j frequency-range]
+        (aset spectrum-data (+ i (* j window-count))
+              (magnitude (aget window (* j 2))
+                         (aget window (inc (* j 2)))))))
+    spectrum-data))
+
 (defn colour ^long [^double val]
   (let [lval (* (inc (Math/log val)) 0.9)]
     (println val)
@@ -102,3 +132,10 @@
 (demo-code)
 
 (def fft-from-image (consume M "image.png"))
+(def sample-data (matrix->sample-data fft-from-image sample-double-data))
+
+(def buf (buffer (count sample-data))) ;; create a buffer to store the audio
+(doseq [[idx d] (map vector (range) sample-data)]
+  (buffer-set! buf idx d))
+
+(buffer-save buf "play.wav")
