@@ -7,7 +7,8 @@
             [mikera.image.colours :as col]
             [mikera.image.spectrum :as spec])
   (:import [mikera.matrixx Matrix AMatrix]
-           [java.awt.image BufferedImage]))
+           [java.awt.image BufferedImage]
+           [org.jtransforms.fft DoubleFFT_2D RealFFTUtils_2D]))
 
 (defonce boot (boot-external-server))
 (defonce buf (buffer 11025)) ;; create a buffer to store the audio
@@ -66,31 +67,40 @@
         window-count  (quot (- n frame-size) overlap)
         spectrum-data (double-array n)]
 
-    (dotimes [i window-count]
+    (dotimes [y window-count]
       ;; src  srcPos  dest destpos length
-      (let [src-pos (* i overlap)]
+      (let [src-pos (* y overlap)]
         (System/arraycopy sample-array src-pos
                           window 0
                           frame-size))
 
       (.realInverse fft window true)
 
-      (dotimes [j frequency-range]
-        (aset spectrum-data (+ i (* j window-count))
-              (magnitude (aget window (* j 2))
-                         (aget window (inc (* j 2)))))))
+      (dotimes [x frequency-range]
+        (aset spectrum-data (+ y (* x window-count))
+              (magnitude (aget window (* x 2))
+                         (aget window (inc (* y 2)))))))
     spectrum-data))
 
-(defn colour ^long [^double val]
-  (let [lval (* (inc (Math/log val)) 0.9)]
-    (println val)
-    (cond
-     (<= lval 0.0) 0xFF00000
-     (<= lval 1.0) (let [v (- lval 0.0)] (col/rgb 0.0 0.0 v))
-     (<= lval 2.0) (let [v (- lval 1.0)] (col/rgb v 0.0 (- 1.0 v)))
-     (<= lval 3.0) (let [v (- lval 2.0)] (col/rgb 1.0 v 0.0))
-     (<= lval 4.0) (let [v (- lval 3.0)] (col/rgb 1.0 1.0 v))
-     :else 0xFFFFFFFFF)))
+(defn rgb-to-grey [val]
+  (let [val (int  val)]
+    (+ (* 0.2126 (bit-and 0xFF (bit-shift-right val 16)))
+       (* 0.7152 (bit-and 0xFF (bit-shift-right val 8)))
+       (* 0.0722 (bit-and 0xFF val)))))
+
+(defn rgb-to-ngrey [val]
+  (let [val (int val)]
+    (/ (+ (* 0.2126 (bit-and 0xFF (bit-shift-right val 16)))
+          (* 0.7152 (bit-and 0xFF (bit-shift-right val 8)))
+          (* 0.0722 (bit-and 0xFF val)))
+       255.0)))
+
+(defn ngrey-to-rgb [^double val]
+  (let [ival (int (Math/round (* 2 val)))]
+    (bit-or 0xFF000000
+            (bit-shift-left ival 16)
+            (bit-shift-left ival 8)
+            ival)))
 
 (defn render
   "Renders a spectrogram matrix into a bufferedimage"
@@ -101,9 +111,13 @@
            h (.getHeight bi)]
        (dotimes [x w]
          (dotimes [y h]
-           (.setRGB bi
-                    (int x) (- (dec h) (int y))
-                    (unchecked-int (spec/heatmap (* 0.009 (.get M (int y) (int x)))))))))
+           (let [v (.get M (int y) (int x))
+                 val-fn #(spec/heatmap (* 0.009 %1))
+                 val-fn ngrey-to-rgb
+                 ]
+             (.setRGB bi
+                      (int x) (- (dec h) (int y))
+                      (unchecked-int (val-fn v)))))))
      bi))
 
 (defn consume
@@ -115,7 +129,7 @@
        (dotimes [x w]
          (dotimes [y h]
            (let [rgb (.getRGB bi (int x) (- (dec h) (int y)))
-                 v (/ rgb 0.009) ;;Much more required here
+                 v rgb ;;Much more required here
                  ]
              (.set M (int y) (int x) v))
            ))
@@ -131,11 +145,11 @@
 
 (demo-code)
 
-(def fft-from-image (consume M "image.png"))
-(def sample-data (matrix->sample-data fft-from-image sample-double-data))
+(comment
+  (def fft-from-image (consume M "image.png"))
+  (def sample-data (matrix->sample-data fft-from-image sample-double-data))
+  (def buf (buffer (count sample-data))) ;; create a buffer to store the audio
+  (doseq [[idx d] (map vector (range) sample-data)]
+    (buffer-set! buf idx d))
 
-(def buf (buffer (count sample-data))) ;; create a buffer to store the audio
-(doseq [[idx d] (map vector (range) sample-data)]
-  (buffer-set! buf idx d))
-
-(buffer-save buf "play.wav")
+  (buffer-save buf "play.wav"))
