@@ -16,6 +16,10 @@ Chromaprint Algorithm:
 6. Quantize the real number with 3 coeeficents (learnt).
 7. 16 filters and each can produce an integer that can be encoded into 2 bits (using the Gray code), so if you combine all the results, you get a 32-bit integer.
 
+## Audio Experiments
+
+* https://soundcloud.com/josephwilk/sets/finger-smudge
+
 ## Resources
 
 * [Chromaprint](https://bitbucket.org/acoustid/chromaprint)
