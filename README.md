@@ -6,7 +6,15 @@
 
 Chromaprint Algorithm:
 
+#### Fingerprint Images
+
+Clojure FFT Example.
 ![Example spectro](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/spectro2.png)
+
+Chromaprint FFT Image representation
+![Chroma FFT Internal Image](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/chroma_fft_image.png)
+
+#### Steps
 
 1. FFT transform of audio (sampling rate 11025 Hz, frame size is 4096 (0.371 s) with 2/3 overlap.)
 2. Frequencies => Musical notes (not octaves). Chroma features.
