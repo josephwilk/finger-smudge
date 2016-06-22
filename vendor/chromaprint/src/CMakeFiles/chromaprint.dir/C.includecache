@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/avresample/avcodec.h
+config.h
+-
+sys/types.h
+-
+stdint.h
+-
+math.h
+-
+string.h
+-
+stdlib.h
+-
+assert.h
+-
+errno.h
+-
+
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/avresample/dsputil.h
+
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/avresample/resample2.c
+avcodec.h
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/avresample/avcodec.h
+dsputil.h
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/avresample/dsputil.h
+
+config.h
+

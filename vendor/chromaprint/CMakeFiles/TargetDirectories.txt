@@ -1,0 +1,4 @@
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/CMakeFiles/uninstall.dir
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/examples/CMakeFiles/fpcalc.dir
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/CMakeFiles/chromaprint_p.dir
+/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/vendor/chromaprint/src/CMakeFiles/chromaprint.dir
