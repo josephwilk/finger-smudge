@@ -42,6 +42,7 @@
     candidate))
 
 
+
 (defsynth siney [note 0 amp-buf 0 out-bus 0  beat-bus (:count time/main-beat) beat-trg-bus (:beat time/main-beat)]
   (let [cnt      (in:kr beat-bus)
         beat-trg (in:kr beat-trg-bus)
@@ -95,12 +96,13 @@
 (mat/set-current-implementation :vectorz)
 
 (defonce fft-image    (img/load-image "image.png"))
-(defonce image-matrix (image->matrix fft-image identity))
+(def image-matrix (image->matrix fft-image fft/rgb-to-ngrey))
 
 (comment
   (and-we-are-the-dreamer-of-the-dreams 120)
 
-  (doseq [row (map vector #([:a :a# :b :c :c# :d :d# :e :f :f# :g]) (mat/rows row))]
-    (doseq [cell row]
-      (buffer-write! (amp-buffers cell))))
-  )
+  (doseq [[note idx-y row] (map vector [:a :a# :b :c :c# :d :d# :e :f :f# :g] (range) (mat/rows image-matrix))]
+    (doseq [[idx-x cell] (map vector (range) row)]
+      (let [cell (/ cell 2)]
+        (println cell)
+        (buffer-write! (get amp-buffers note) (* idx-y idx-x) [cell])))))
