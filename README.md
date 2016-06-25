@@ -14,6 +14,9 @@ Clojure FFT Example.
 Chromaprint FFT Image representation
 ![Chroma FFT Internal Image](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/chroma_fft_image.png)
 
+* Y axis (Energy) -> A A# B C C# D D# E F F# G G#
+* X axis (Time) - Is is fixed or dynamic...
+
 #### Steps
 
 1. FFT transform of audio (sampling rate 11025 Hz, frame size is 4096 (0.371 s) with 2/3 overlap.)
