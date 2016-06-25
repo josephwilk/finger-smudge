@@ -5,9 +5,10 @@
             [finger-smudge.fft :as fft]
             [mikera.image.core :as img]
             [mud.timing :as time]
+            ;;[clojure.core.matrix :as mat]
+
             [clojure.core.matrix :as mat]
-            [mikera.vectorz.matrix-api]
-            [clojure.core.matrix :as mat]
+;;            [mikera.vectorz.matrix-api]
             )
   (:use [overtone.live])
   (:import [javax.sound.sampled
@@ -19,6 +20,7 @@
             Clip
             ]
            [ java.awt.image BufferedImage]
+           [mikera.matrixx Matrix AMatrix]
            [dynne.sound.impl ISound MutableDouble BufferPosition]))
 
 (defn uuid [] (str (java.util.UUID/randomUUID)))
@@ -60,7 +62,9 @@
                       :e  (buffer 963)
                       :f  (buffer 963)
                       :f# (buffer 963)
-                      :g  (buffer 963)})
+                      :g  (buffer 963)
+                      :g#  (buffer 963)
+                      })
 
 (defonce synth-notes {:a  (siney :note (note :A3)  :amp-buf (:a amp-buffers))
                       :a# (siney :note (note :A#3) :amp-buf (:a# amp-buffers))
@@ -77,23 +81,18 @@
 
 
 (defn image->matrix [^BufferedImage bi rgb-to-val-fn]
-  (let [w (.getHeight bi) ;;Notes is not rotated. lazy switch
-        h (.getWidth bi)
-        M (mat/new-matrix h w)]
-    (println (type M))
-    (dotimes [y h]
-      (dotimes [x w]
-        (let [v (rgb-to-val-fn (.getRGB bi x y))]
-          (println v)
-
-          (mat/mset! M y x v)
-;;          (mat/mset! M y x v)
-          )))
+  (let [h (.getHeight bi) ;;Notes is not rotated. lazy switch
+        w (.getWidth bi)
+        M (mat/new-matrix w h)]
+    ;;(println (type M))
+    (dotimes [y w]
+      (dotimes [x h]
+        (let [v (rgb-to-val-fn (.getRGB bi y x))]
+          ;;(println y x)
+          (mat/mset! M y x v))))
     M))
 
-(def a (mat/new-matrix 2 2))
-(type a)
-(mat/mset a 0 0 3)
+(mat/set-current-implementation :vectorz)
 
 (defonce fft-image    (img/load-image "image.png"))
 (defonce image-matrix (image->matrix fft-image identity))

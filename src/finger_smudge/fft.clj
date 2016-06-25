@@ -1,8 +1,6 @@
 (ns finger-smudge.fft
   "Adapted from https://clojurefun.wordpress.com/2013/12/22/spectrograms-with-overtone/"
-  (:use [overtone core]
-
-        )
+  (:use [overtone core])
   (:require [mikera.vectorz.matrix-api]
             [clojure.core.matrix :as mat]
             [mikera.image.core :as img]
