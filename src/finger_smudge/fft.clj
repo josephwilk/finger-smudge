@@ -12,7 +12,7 @@
            [java.awt.image BufferedImage]
            [org.jtransforms.fft DoubleFFT_1D DoubleFFT_2D RealFFTUtils_2D]))
 
-(defonce boot (boot-external-server))
+;;(defonce boot (boot-external-server))
 
 (defonce samp-buf (sample "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/resources/136_think_mono11025.wav"))
 (defonce sample-double-data (into-array Double/TYPE (buffer-read samp-buf)))

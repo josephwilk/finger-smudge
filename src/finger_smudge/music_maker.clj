@@ -1,7 +1,14 @@
 (ns finger-smudge.music-maker
   (:require [dynne.sound :as sound]
             [clojure.java.io :as io]
-            [primitive-math :as p])
+            [primitive-math :as p]
+            [finger-smudge.fft :as fft]
+            [mikera.image.core :as img]
+            [mud.timing :as time]
+            [clojure.core.matrix :as mat]
+            [mikera.vectorz.matrix-api]
+            [clojure.core.matrix :as mat]
+            )
   (:use [overtone.live])
   (:import [javax.sound.sampled
             AudioFileFormat$Type
@@ -9,7 +16,9 @@
             AudioFormat$Encoding
             AudioInputStream
             AudioSystem
-            Clip]
+            Clip
+            ]
+           [ java.awt.image BufferedImage]
            [dynne.sound.impl ISound MutableDouble BufferPosition]))
 
 (defn uuid [] (str (java.util.UUID/randomUUID)))
@@ -31,27 +40,68 @@
     candidate))
 
 
-(defsynth siney [note 0 amp 0 out-bus 0]
-  (let [freq (midicps note)
+(defsynth siney [note 0 amp-buf 0 out-bus 0  beat-bus (:count time/main-beat) beat-trg-bus (:beat time/main-beat)]
+  (let [cnt      (in:kr beat-bus)
+        beat-trg (in:kr beat-trg-bus)
+        amp (buf-rd:kr 1 amp-buf cnt)
+
+        freq (midicps note)
         src (sin-osc freq)
         src (* src amp)]
     (out out-bus src)))
 
-(defonce synth-notes {:a  (siney (note :A3))
-                      :a# (siney (note :A#3))
-                      :b  (siney (note :B3))
-                      :c  (siney (note :C4))
-                      :c# (siney (note :C#4))
-                      :d  (siney (note :D4))
-                      :d# (siney (note :D#4))
-                      :e  (siney (note :E4))
-                      :f  (siney (note :F4))
-                      :f# (siney (note :F#4))
-                      :g  (siney (note :G4))
-                      :g# (siney (note :G#4))})
+(defonce amp-buffers {:a  (buffer 963)
+                      :a# (buffer 963)
+                      :b  (buffer 963)
+                      :c  (buffer 963)
+                      :c# (buffer 963)
+                      :d  (buffer 963)
+                      :d# (buffer 963)
+                      :e  (buffer 963)
+                      :f  (buffer 963)
+                      :f# (buffer 963)
+                      :g  (buffer 963)})
 
-(ctl (:a synth-notes) :amp 0.0)
+(defonce synth-notes {:a  (siney :note (note :A3)  :amp-buf (:a amp-buffers))
+                      :a# (siney :note (note :A#3) :amp-buf (:a# amp-buffers))
+                      :b  (siney :note (note :B3)  :amp-buf (:b amp-buffers))
+                      :c  (siney :note (note :C4)  :amp-buf (:c amp-buffers))
+                      :c# (siney :note (note :C#4) :amp-buf (:c# amp-buffers))
+                      :d  (siney :note (note :D4)  :amp-buf (:d amp-buffers))
+                      :d# (siney :note (note :D#4) :amp-buf (:d# amp-buffers))
+                      :e  (siney :note (note :E4)  :amp-buf (:e amp-buffers))
+                      :f  (siney :note (note :F4)  :amp-buf (:f amp-buffers))
+                      :f# (siney :note (note :F#4) :amp-buf (:f# amp-buffers))
+                      :g  (siney :note (note :G4)  :amp-buf (:g amp-buffers))
+                      :g# (siney :note (note :G#4) :amp-buf (:g# amp-buffers))})
+
+
+(defn image->matrix [^BufferedImage bi rgb-to-val-fn]
+  (let [w (.getHeight bi) ;;Notes is not rotated. lazy switch
+        h (.getWidth bi)
+        M (mat/new-matrix h w)]
+    (println (type M))
+    (dotimes [y h]
+      (dotimes [x w]
+        (let [v (rgb-to-val-fn (.getRGB bi x y))]
+          (println v)
+
+          (mat/mset! M y x v)
+;;          (mat/mset! M y x v)
+          )))
+    M))
+
+(def a (mat/new-matrix 2 2))
+(type a)
+(mat/mset a 0 0 3)
+
+(defonce fft-image    (img/load-image "image.png"))
+(defonce image-matrix (image->matrix fft-image identity))
 
 (comment
   (and-we-are-the-dreamer-of-the-dreams 120)
+
+  (doseq [row (map vector #([:a :a# :b :c :c# :d :d# :e :f :f# :g]) (mat/rows row))]
+    (doseq [cell row]
+      (buffer-write! (amp-buffers cell))))
   )

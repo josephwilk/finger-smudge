@@ -16,5 +16,6 @@
                  [overtone "0.9.1"]
                  [net.mikera/vectorz-clj "0.29.0"]
                  [net.mikera/imagez "0.10.0"]
-                 ]
+
+                 [mud "0.1.0-SNAPSHOT"]]
   :jvm-opts ["-Xmx2048m"])
