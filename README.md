@@ -1,5 +1,8 @@
 # Finger Smudge
 
+An art project exploring music for machines. 
+Firstly exploring the digital fingerprinting of audio music.. 
+
 ![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
 
 ## Notes 
