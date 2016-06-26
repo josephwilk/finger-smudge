@@ -119,18 +119,9 @@
           (buffer-write! (get amp-buffers note) col-idx [0.0]))))))
 
 (defn write-energy! []
-  (doseq [[col-idx col] (map vector (range) (mat/columns image-matrix))]
-    (let [as  (into [] col)
-          max-idx (first (apply max-key second (map-indexed vector as)))
-          max-energy (nth as max-idx)
-          winning-note (nth notes max-idx)
-          lossing-notes (drop-nth max-idx notes)]
-
-      (doseq [[row-idx note] (map vector (range) notes)]
-        (if (= row-idx max-idx)
-          (do (println note max-energy) (buffer-write! (get amp-buffers note) col-idx [max-energy]))
-          (buffer-write! (get amp-buffers note) col-idx [0.0]))))))
-
+  (doseq [[note row] (map vector [:a :a# :b :c :c# :d :d# :e :f :f# :g :g#] (mat/rows image-matrix))]
+    (doseq [[idx-x cell] (map vector (range) row)]
+      (buffer-write! (get amp-buffers note) idx-x [cell]))))
 
 (comment
   (and-we-are-the-dreamer-of-the-dreams 120)
