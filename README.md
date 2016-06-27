@@ -1,6 +1,6 @@
 # Finger Smudge
 
-An art project producing music for machines. 
+An art project producing :musical_score: music for :computer: machines. 
 Firstly exploring the digital fingerprinting of audio music. As used in sites like YouTube & SoundCloud to detect copyright infringment.
 
 ![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
