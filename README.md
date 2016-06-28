@@ -5,9 +5,9 @@ Firstly exploring the digital fingerprinting of audio music. As used in sites li
 
 ![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
 
-## Notes 
+## Chromaprint
 
-Chromaprint Algorithm:
+Using an open source audio fingerprinter Chromaprint to investigate forward and reverse generation of fingerprints. 
 
 #### Fingerprint Images
 
@@ -33,6 +33,10 @@ Chromaprint FFT Image representation
 ## Audio Experiments
 
 * https://soundcloud.com/josephwilk/sets/finger-smudge
+
+## Generative Shazaming 
+
+Turn Shazam on, run a generative piece of music until a match is found.
 
 ## Resources
 
