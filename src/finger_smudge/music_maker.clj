@@ -48,7 +48,10 @@
         amp (buf-rd:kr 1 amp-buf cnt)
 
         freq (midicps note)
-        src (sin-osc freq)
+        src (mix [(sin-osc freq)
+                  (lf-tri freq)
+                  (lpf (* 0.25 (lf-saw freq)) (/ freq 2.0))])
+        src (g-verb src 300)
         src (* src amp)]
     (out out-bus src)))
 
@@ -66,19 +69,19 @@
                       :g#  (buffer 963)
                       })
 
-(defonce synth-notes {:a  (siney :note (note :A3)  :amp-buf (:a amp-buffers))
-                      :a# (siney :note (note :A#3) :amp-buf (:a# amp-buffers))
-                      :b  (siney :note (note :B3)  :amp-buf (:b amp-buffers))
-                      :c  (siney :note (note :C4)  :amp-buf (:c amp-buffers))
-                      :c# (siney :note (note :C#4) :amp-buf (:c# amp-buffers))
-                      :d  (siney :note (note :D4)  :amp-buf (:d amp-buffers))
-                      :d# (siney :note (note :D#4) :amp-buf (:d# amp-buffers))
-                      :e  (siney :note (note :E4)  :amp-buf (:e amp-buffers))
-                      :f  (siney :note (note :F4)  :amp-buf (:f amp-buffers))
-                      :f# (siney :note (note :F#4) :amp-buf (:f# amp-buffers))
-                      :g  (siney :note (note :G4)  :amp-buf (:g amp-buffers))
-                      :g# (siney :note (note :G#4) :amp-buf (:g# amp-buffers))})
-
+(def synth-notes {:a  (siney :note (note :A2)  :amp-buf (:a amp-buffers))
+                  :a# (siney :note (note :A#2) :amp-buf (:a# amp-buffers))
+                  :b  (siney :note (note :B2)  :amp-buf (:b amp-buffers))
+                  :c  (siney :note (note :C3)  :amp-buf (:c amp-buffers))
+                  :c# (siney :note (note :C#3) :amp-buf (:c# amp-buffers))
+                  :d  (siney :note (note :D3)  :amp-buf (:d amp-buffers))
+                  :d# (siney :note (note :D#3) :amp-buf (:d# amp-buffers))
+                  :e  (siney :note (note :E3)  :amp-buf (:e amp-buffers))
+                  :f  (siney :note (note :F3)  :amp-buf (:f amp-buffers))
+                  :f# (siney :note (note :F#3) :amp-buf (:f# amp-buffers))
+                  :g  (siney :note (note :G3)  :amp-buf (:g amp-buffers))
+                  :g# (siney :note (note :G#3) :amp-buf (:g# amp-buffers))})
+(kill siney)
 
 (defn image->matrix [^BufferedImage bi rgb-to-val-fn]
   (let [h (.getHeight bi) ;;Notes is not rotated. lazy switch
@@ -105,18 +108,26 @@
        (remove #(zero? (mod (first %) n)))
               (map second)))
 
-(defn write-max-energy-note-only! []
-  (doseq [[col-idx col] (map vector (range) (mat/columns image-matrix))]
-    (let [as  (into [] col)
-          max-idx (first (apply max-key second (map-indexed vector as)))
-          max-energy (nth as max-idx)
-          winning-note (nth notes max-idx)
-          lossing-notes (drop-nth max-idx notes)]
+(do
+  (defn write-max-energy-note-only! [scale]
+    (let [scale-notes (map (fn [x] (keyword (clojure.string/lower-case (name (case x
+                                                                               :Bb :a# ;;Joe hack
+                                                                               :Eb :d# ;;For joes brain.
+                                                                               x))))) (map find-pitch-class-name scale))]
 
-      (doseq [[row-idx note] (map vector (range) notes)]
-        (if (= row-idx max-idx)
-          (do (println note max-energy) (buffer-write! (get amp-buffers note) col-idx [max-energy]))
-          (buffer-write! (get amp-buffers note) col-idx [0.0]))))))
+      (doseq [[col-idx col] (map vector (range) (mat/columns image-matrix))]
+        (let [as  (into [] col)
+              max-idx (first (apply max-key second (map-indexed vector as)))
+              max-energy (nth as max-idx)
+              winning-note (nth notes max-idx)
+              lossing-notes (drop-nth max-idx notes)]
+          (doseq [[row-idx note] (map vector (range) notes)]
+            (let [e (if (and
+                         (some #{winning-note} scale-notes)
+                         (= row-idx max-idx)) max-energy 0.0)]
+              (buffer-write! (get amp-buffers note) col-idx [e])))))))
+
+  (write-max-energy-note-only! (scale :Bb3 :major)))
 
 (defn write-energy! []
   (doseq [[note row] (map vector [:a :a# :b :c :c# :d :d# :e :f :f# :g :g#] (mat/rows image-matrix))]
@@ -125,10 +136,5 @@
 
 (comment
   (and-we-are-the-dreamer-of-the-dreams 120)
-  (mud/ctl-global-clock 6.0)
-  (write-max-energy-note-only!)
+  (mud/ctl-global-clock (* 4 32.0))
   )
-
-(disj notes [:a])
-
-(max-key [0.2 0.3])
