@@ -34,6 +34,8 @@ Chromaprint FFT Image representation
 
 Turn Shazam on, run a generative piece of music until a match is found.
 
+Turns out its pretty easy to trick Shazam. To make it more interesting we consider not only a match but the match with the highest number of previous Shazam examples (hence more data and Shazam should be more accurate).
+
 ## Listen to the Audio Experiments
 
 * https://soundcloud.com/josephwilk/sets/finger-smudge
