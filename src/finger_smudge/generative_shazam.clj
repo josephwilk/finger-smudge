@@ -129,37 +129,39 @@
     (out out-bus (pan2 (* amp src)))))
 
 (kill plucked-string)
-(mud/ctl-global-clock 4.0)
 
 (defn go []
   (let [t (System/currentTimeMillis)]
     (recording-start (str "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/screenshots/generative-" t ".wav")))
-  (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot))))
-  (def trigger-g17518 (mud/on-beat-trigger 32 (fn [] (shake-music-params!))))
+  (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t))))
+  (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params!))))
   (plucked-string :notes-buf notes :dur-buf dur-b))
 
-(defn take-screenshot []
+(defn take-screenshot [start-ts]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
         rt (new Robot)
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
         t (System/currentTimeMillis)
         test-pixel (.getRGB img 2230 72)]
     (when (= -15570434 test-pixel)
-      (println (str "Match found: " t))
+      (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
       (ImageIO/write img "jpg" (new File (str "screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! []
-  (let [s (choose [:A2 :A#2 :B2 :C3 :C#3 :D3 :E3 :F3 :F#3 :G3 :G#3])
-        notes (flatten (concat (scale s :minor-pentatonic)
-                               (scale s :minor-pentatonic)
-                               (scale s :minor-pentatonic)))]
-    (mud/pattern! coef-b (repeatedly 128 #(choose [1])))
-    (mud/pattern! notes (repeatedly 256 #(choose notes)))
-    (mud/pattern! dur-b (repeatedly 256 #(choose [6 7 8 5 4])))
-
+  (let [s (choose ["A" "A#" "B" "C" "C#" "D" "E" "F" "F#" "G" "G#"])
+        n (flatten (concat (scale (str s "2") :minor-pentatonic)
+                               (scale (str s "3") :minor-pentatonic)
+                               (scale (str s "4") :minor-pentatonic)))]
+    (mud/ctl-global-clock (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
+    (mud/pattern! notes (repeatedly 256 #(choose n)))
+    (mud/pattern! coef-b (repeatedly 128 #(choose [2])))
     (mud/pattern! hats-buf (repeatedly 32 #(choose [0 1 1 1])))
     (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 1 1 1])))
-    (mud/pattern! hats-amp (repeatedly 32 #(choose [0 4.0 4.0])))))
+    (mud/pattern! hats-amp (repeatedly 32 #(choose [0 4.0 4.0])))
+    (mud/pattern! dur-b (repeatedly 256 #(choose [4 4 5 5 6 6])))
+
+
+))
 
 (go)
 (recording-stop)
