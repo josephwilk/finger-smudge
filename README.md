@@ -38,6 +38,7 @@ Turns out its pretty easy to trick Shazam. To make it more interesting we consid
 
 ## Listen to the Audio Experiments
 
+* https://soundcloud.com/fingerprint-smudger/generative-1467636802259
 * https://soundcloud.com/josephwilk/sets/finger-smudge
 
 ## Resources
