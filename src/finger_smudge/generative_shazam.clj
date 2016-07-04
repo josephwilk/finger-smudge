@@ -131,40 +131,46 @@
 (kill plucked-string)
 
 (defn go []
+  (def counter (atom 0))
   (let [t (System/currentTimeMillis)]
     (recording-start (str "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/screenshots/generative-" t ".wav")))
-  (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t))))
+  (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
   (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params!))))
   (plucked-string :notes-buf notes :dur-buf dur-b))
 
-(defn take-screenshot [start-ts]
+(defn stop-it []
+  (println @counter)
+  (reset! counter 0)
+  (recording-stop)
+  (kill plucked-string)
+  (mud/remove-beat-trigger trigger-g17519)
+  (mud/remove-all-beat-triggers))
+
+(defn take-screenshot [start-ts counter]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
         rt (new Robot)
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
         t (System/currentTimeMillis)
         test-pixel (.getRGB img 2230 72)]
     (when (= -15570434 test-pixel)
+      (swap! counter inc)
       (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
       (ImageIO/write img "jpg" (new File (str "screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! []
-  (let [s (choose ["A" "A#" "B" "C" "C#" "D" "E" "F" "F#" "G" "G#"])
+  (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         n (flatten (concat (scale (str s "2") :minor-pentatonic)
-                               (scale (str s "3") :minor-pentatonic)
-                               (scale (str s "4") :minor-pentatonic)))]
-    (mud/ctl-global-clock (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
-    (mud/pattern! notes (repeatedly 256 #(choose n)))
-    (mud/pattern! coef-b (repeatedly 128 #(choose [2])))
-    (mud/pattern! hats-buf (repeatedly 32 #(choose [0 1 1 1])))
+                           (scale (str s "3") :minor-pentatonic)
+                           (scale (str s "4") :minor-pentatonic)))]
+    (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
+    (mud/pattern! notes        (repeatedly 256 #(choose n)))
+    (mud/pattern! coef-b       (repeatedly 128 #(choose [2])))
+    (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 1 1 1])))
     (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 1 1 1])))
-    (mud/pattern! hats-amp (repeatedly 32 #(choose [0 4.0 4.0])))
-    (mud/pattern! dur-b (repeatedly 256 #(choose [4 4 5 5 6 6])))
+    (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
+    (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6])))))
 
-
-))
-
-(go)
-(recording-stop)
-(kill plucked-string)
-(mud/remove-beat-trigger trigger-g17519)
-(mud/remove-all-beat-triggers)
+(comment
+  (go)
+  (stop-it)
+  )
