@@ -1,7 +1,8 @@
 (ns finger-smudge.generative-shazam
   (:use [overtone.live])
   (:require [mud.timing :as time]
-            [mud.core :as mud])
+            [mud.core :as mud]
+            [clojure.java.io :as io])
 
   (:import [java.awt Rectangle Dimension Robot Toolkit]
            [java.awt.image BufferedImage]
@@ -19,7 +20,8 @@
                            coef-buf coef-b
                            beat-bus (:count time/beat-1th) beat-trg-bus (:beat time/beat-1th)
                            notes-buf 0 dur-buf 0
-                           mix-rate 0.5]
+                           mix-rate 0.5
+                           wave 0]
     (let [cnt (in:kr beat-bus)
           trg (in:kr beat-trg-bus)
           note (buf-rd:kr 1 notes-buf cnt)
@@ -33,6 +35,10 @@
           dist   (distort plk)
           filt   (rlpf dist (* 12 freq) 0.6)
           clp    (clip2 filt 0.8)
+          wave (select:ar [(sin-osc freq (* 2 Math/PI))
+                           (lf-saw freq (* 2 Math/PI))
+                           (lf-tri freq (* 2 Math/PI))]
+                          wave)
           clp (mix [clp
                     (* 1.01 (sin-osc freq (* 2 Math/PI)))
                     (rlpf (saw freq) 1200)])
@@ -67,37 +73,6 @@
         src (free-verb src)]
                 (out out-bus (pan2 src))))
 
-(do (defonce kick-seq-buf (buffer 256)) (defonce bass-notes-buf (buffer 256)) (defonce drums-g (group "main drums")) (defonce kick-amp (buffer 256))
-    (def kicker (space-kick3 [:head drums-g] :note-buf bass-notes-buf :seq-buf kick-seq-buf :num-steps 16 :beat-num 0 :noise 0.05 :amp 0.0 :mod-index 0.1 :mod-freq 4.0 :mode-freq 0.2))(ctl kicker :amp-buf kick-amp)(mud/pattern! kick-amp  [1.5 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1] (repeat 2 [1.2 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1]) [1.2 1 1 1 1 1 1 1   1.2 1 1 1 1.2 1 1.3 1])(mud/pattern! bass-notes-buf (repeat 8 (mud/degrees [1] :minor :F1))(repeat 2 (repeat 8 (mud/degrees [1] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))[(mud/degrees [1 1 1 1  5 4 3 1] :minor :F1)]))
-
-
-(ctl kicker :attack 0.0 :sustain 0.2 :amp 4.0)
-
-
-(defonce kick-seq-buf (buffer 32))
-(defonce bass-notes-buf (buffer 16))
-(defonce power-kick-seq-buf (buffer 16))
-
-
-
-(mud/pattern! dur-b (repeatedly 256 #(choose [1])))
-(mud/pattern! coef-b (repeatedly 128 #(choose [4])))
-(mud/pattern! notes (repeatedly 256 #(choose (scale :C3 :major))))
-
-(mud/one-time-beat-trigger
- 15 16
- (fn []
-   (do
-     (defonce hats-buf (buffer 256)) (defonce hats-amp (buffer 256)) (defonce hat-verb (buffer 256))
-     (mud/pattern! hats-amp [4 4 4 4])
-     (mud/pattern! hat-verb[1.0])
-     (kill whitenoise-hat2)
-     (def white (whitenoise-hat2 [:head drums-g] :amp-buf hats-amp :seq-buf hats-buf :beat-bus (:count time/beat-1th) :beat-trg-bus (:beat time/beat-1th) :num-steps 16 :release 0.1 :attack 0.0 :beat-num 0))(ctl white :amp-buf hats-amp)
-
-     (ctl white :attack 0.002 :release 0.04 :amp 0.6)
-     (when kicker (ctl kicker :amp 0.9)))))
-
-
 (defsynth whitenoise-hat2 [out-bus 0
                            amp-buf 0
                            seq-buf 0 beat-bus (:count time/main-beat) beat-trg-bus (:beat time/main-beat) num-steps 0 beat-num 0
@@ -126,22 +101,37 @@
         src (free-verb src 0.3 (t-rand:kr 0.5 1.0 bar-trg) (t-rand:kr 0.0 1.0 bar-trg))
         ;;        src (* slice-amp [s1 s2])
         ]
-    (out out-bus (pan2 (* amp src)))))
+        (out out-bus (pan2 (* amp src)))))
 
-(kill plucked-string)
+(do (defonce kick-seq-buf (buffer 256)) (defonce bass-notes-buf (buffer 256)) (defonce drums-g (group "main drums")) (defonce kick-amp (buffer 256))
+    (def kicker (space-kick3 [:head drums-g] :note-buf bass-notes-buf :seq-buf kick-seq-buf :num-steps 16 :beat-num 0 :noise 0.05 :amp 0.0 :mod-index 0.1 :mod-freq 4.0 :mode-freq 0.2))(ctl kicker :amp-buf kick-amp)(mud/pattern! kick-amp  [1.5 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1] (repeat 2 [1.2 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1]) [1.2 1 1 1 1 1 1 1   1.2 1 1 1 1.2 1 1.3 1])(mud/pattern! bass-notes-buf (repeat 8 (mud/degrees [1] :minor :F1))(repeat 2 (repeat 8 (mud/degrees [1] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))[(mud/degrees [1 1 1 1  5 4 3 1] :minor :F1)]))
+
+
+(ctl kicker :attack 0.0 :sustain 0.2 :amp 4.0)
+
+(defonce kick-seq-buf (buffer 32))
+(defonce bass-notes-buf (buffer 16))
+(defonce power-kick-seq-buf (buffer 16))
+
+(mud/pattern! dur-b (repeatedly 256 #(choose [1])))
+(mud/pattern! coef-b (repeatedly 128 #(choose [4])))
+(mud/pattern! notes (repeatedly 256 #(choose (scale :C3 :major))))
+
+(mud/one-time-beat-trigger
+ 15 16
+ (fn []
+   (do
+     (defonce hats-buf (buffer 256)) (defonce hats-amp (buffer 256)) (defonce hat-verb (buffer 256))
+     (mud/pattern! hats-amp [4 4 4 4])
+     (mud/pattern! hat-verb[1.0])
+     ;;(kill whitenoise-hat2)
+     (def white (whitenoise-hat2 [:head drums-g] :amp-buf hats-amp :seq-buf hats-buf :beat-bus (:count time/beat-1th) :beat-trg-bus (:beat time/beat-1th) :num-steps 16 :release 0.1 :attack 0.0 :beat-num 0))(ctl white :amp-buf hats-amp)
+     (ctl white :attack 0.002 :release 0.04 :amp 0.0)
+     (when kicker (ctl kicker :amp 0.0)))))
+
+;;(kill plucked-string)
 
 (def root "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge")
-
-(defn go []
-  (def counter (atom 0))
-  (let [t (System/currentTimeMillis)
-        generation-dir (str root "/" t )]
-    (io/make-parents (str generation-dir "/"))
-
-    (recording-start (str generation-dir "/screenshots/generative-" t ".wav")))
-  (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
-  (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params!))))
-  (plucked-string :notes-buf notes :dur-buf dur-b))
 
 (defn stop-it []
   (println @counter)
@@ -160,20 +150,40 @@
     (when (= -15570434 test-pixel)
       (swap! counter inc)
       (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
-      (ImageIO/write img "jpg" (new File (str start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
+      (ImageIO/write img "jpg" (new File (str "resources/generations/" start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
-(defn shake-music-params! []
+(defn shake-music-params! [p-synth change-iterations]
+  (swap! change-iterations inc)
+  (println (str "Change: " @change-iterations))
   (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         n (flatten (concat (scale (str s "2") :minor-pentatonic)
                            (scale (str s "3") :minor-pentatonic)
                            (scale (str s "4") :minor-pentatonic)))]
+    (ctl p-synth :wave (choose [0 1 2 3]))
     (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
     (mud/pattern! notes        (repeatedly 256 #(choose n)))
     (mud/pattern! coef-b       (repeatedly 128 #(choose [2])))
-    (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 1 1 1])))
-    (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 1 1 1])))
+    (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 0 0 0])))
+    (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 0 0 0])))
     (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
     (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6])))))
+
+(defn go []
+  (def counter (atom 0))
+  (def change-iterations (atom 0))
+  (let [t (System/currentTimeMillis)
+        generation-dir (str root "/resources/generations/" t "/screenshots")
+        ]
+    (io/make-parents (str generation-dir "/blah"))
+
+
+    (println (str generation-dir "/generative.wav"))
+    (recording-start (str generation-dir "/generative.wav"))
+    (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
+
+      (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
+      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))))
+  )
 
 (comment
   (go)
