@@ -152,34 +152,32 @@
       (ImageIO/write img "jpg" (new File (str "resources/generations/" start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! [p-synth change-iterations]
-  (swap! change-iterations inc)
-  (println (str "Change: " @change-iterations))
   (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         n (flatten (concat (scale (str s "2") :minor-pentatonic)
                            (scale (str s "3") :minor-pentatonic)
-                           (scale (str s "4") :minor-pentatonic)))]
-    (ctl p-synth :wave (choose [0 1 2 3]))
-    (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
-    (mud/pattern! notes        (repeatedly 256 #(choose n)))
-    (mud/pattern! coef-b       (repeatedly 128 #(choose [2])))
-    (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 0 0 0])))
-    (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 0 0 0])))
-    (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
-    (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6])))))
+                           (scale (str s "4") :minor-pentatonic)))
+        options 6
+        pick-one-thing (rand-int options)]
+    (case pick-one-thing
+      0 (ctl p-synth :wave (choose [0 1 2 3]))
+      1 (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
+      2 (mud/pattern! notes        (repeatedly 256 #(choose n)))
+      3 (mud/pattern! coef-b       (repeatedly 128 #(choose [2])))
+      ;;      4 (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 0 0 0])))
+      ;;      5 (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 0 0 0])))
+      4 (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
+      5 (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6])))))
+  (swap! change-iterations inc)
+  (println (str "Change: " @change-iterations)))
 
 (defn go []
   (def counter (atom 0))
   (def change-iterations (atom 0))
   (let [t (System/currentTimeMillis)
-        generation-dir (str root "/resources/generations/" t "/screenshots")
-        ]
+        generation-dir (str root "/resources/generations/" t "/screenshots")]
     (io/make-parents (str generation-dir "/blah"))
-
-
-    (println (str generation-dir "/generative.wav"))
     (recording-start (str generation-dir "/generative.wav"))
     (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
-
       (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
       (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))))
   )
