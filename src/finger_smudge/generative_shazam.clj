@@ -35,12 +35,11 @@
           dist   (distort plk)
           filt   (rlpf dist (* 12 freq) 0.6)
           clp    (clip2 filt 0.8)
-          wave (select:ar [(sin-osc freq (* 2 Math/PI))
+          wave (select:ar wave [(sin-osc freq (* 2 Math/PI))
                            (lf-saw freq (* 2 Math/PI))
-                           (lf-tri freq (* 2 Math/PI))]
-                          wave)
+                           (lf-tri freq (* 2 Math/PI))])
           clp (mix [clp
-                    (* 1.01 (sin-osc freq (* 2 Math/PI)))
+                    (* 1.01 wave)
                     (rlpf (saw freq) 1200)])
 
           clp (comb-n clp 0.9)
