@@ -162,13 +162,13 @@
       0 (ctl p-synth :wave (choose [0 1 2 3]))
       1 (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
       2 (mud/pattern! notes        (repeatedly 256 #(choose n)))
-      3 (mud/pattern! coef-b       (repeatedly 128 #(choose [2])))
+      3 (mud/pattern! coef-b       (repeatedly 128 #(choose [2 1])))
       ;;      4 (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 0 0 0])))
       ;;      5 (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 0 0 0])))
       4 (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
-      5 (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6])))))
-  (swap! change-iterations inc)
-  (println (str "Change: " @change-iterations)))
+      5 (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6]))))
+    (swap! change-iterations inc)
+    (println (str {:change-no @change-iterations :mutated pick-one-thing}))))
 
 (defn go []
   (def counter (atom 0))
