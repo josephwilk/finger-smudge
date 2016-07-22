@@ -34,7 +34,13 @@ Chromaprint FFT Image representation
 
 Turn Shazam on, run a generative piece of music until a match is found (We screen-scrap to detect a Shazam match notification). Desktop matcher seems more accurate + requires more sampling time than mobile so we only use this: https://itunes.apple.com/gb/app/shazam/id897118787?mt=12. 
 
+Avoid any noise by redirecting audio to SoundFlower and set input to SoundFlower. Perfect siganl :)
+
 Turns out its pretty easy to trick Shazam. To make it more interesting we consider not only a match but the match with the highest number of previous Shazam examples (hence more data and Shazam should be more accurate).
+
+#### Notes
+
+* Chord progressions seem to dominate detection.
 
 ## Listen to the Audio Experiments
 
