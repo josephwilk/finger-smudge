@@ -130,10 +130,15 @@
 
 (kill plucked-string)
 
+(def root "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge")
+
 (defn go []
   (def counter (atom 0))
-  (let [t (System/currentTimeMillis)]
-    (recording-start (str "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/screenshots/generative-" t ".wav")))
+  (let [t (System/currentTimeMillis)
+        generation-dir (str root "/" t )]
+    (io/make-parents (str generation-dir "/"))
+
+    (recording-start (str generation-dir "/screenshots/generative-" t ".wav")))
   (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
   (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params!))))
   (plucked-string :notes-buf notes :dur-buf dur-b))
@@ -155,7 +160,7 @@
     (when (= -15570434 test-pixel)
       (swap! counter inc)
       (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
-      (ImageIO/write img "jpg" (new File (str "screenshots/" t "-" test-pixel "-" ".jpg"))))))
+      (ImageIO/write img "jpg" (new File (str start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! []
   (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
