@@ -210,11 +210,14 @@
                      trigger-g17519 trigger-g17518
                      generation-dir)))))
 
+(def sleep-time (* 60 1000))
+
 (defn event-loop []
   (loop []
     (let [stop-fn (go)]
-      (Thread/sleep (* 60 1000))
-      (stop-fn))))
+      (Thread/sleep sleep-time)
+      (stop-fn)
+      (recur))))
 
 (comment
   (event-loop)
