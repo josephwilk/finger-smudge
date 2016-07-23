@@ -223,6 +223,8 @@
       (stop-fn)
       (when @run-flag (recur)))))
 
+(set! *print-length* false)
+
 (comment
   (event-loop)
   (reset! run-flag false)
