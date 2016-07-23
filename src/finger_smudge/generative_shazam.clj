@@ -139,9 +139,8 @@
                trigger-1 trigger-2
                generation-dir]
   (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}]
-    (info state)
+    (info (pr-str state))
     (spit (pr-str generation-dir "state.edn") (str state)))
-
   (reset! counter 0)
   (reset! change-iterations 0)
   (reset! settings [])
@@ -150,8 +149,6 @@
   (mud/remove-beat-trigger trigger-1)
   (mud/remove-beat-trigger trigger-2)
   (mud/remove-all-beat-triggers)
-
-
   )
 
 (defn take-screenshot [generation-dir start-ts counter]
@@ -194,23 +191,22 @@
     (info (str {:change-no @change-iterations :mutated pick-one-thing}))))
 
 (defn go []
-  (def counter (atom 0))
-  (def change-iterations (atom 0))
-  (def settings (atom []))
-  (let [t (System/currentTimeMillis)
-        generation-dir (str root "/resources/generations/" t "/")
-        screenshot-dir (str generation-dir "/screenshots")]
-    (io/make-parents (str screenshot-dir "/blah")) ;; Lazy create dirs
-    (recording-start (str generation-dir "/generative.wav"))
-    (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
-      (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter))))
-      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations settings))))
+  (let [counter (atom 0)
+        change-iterations (atom 0)
+        settings (atom [])]
+    (let [t (System/currentTimeMillis)
+          generation-dir (str root "/resources/generations/" t "/")
+          screenshot-dir (str generation-dir "/screenshots")]
+      (io/make-parents (str screenshot-dir "/blah")) ;; Lazy create dirs
+      (recording-start (str generation-dir "/generative.wav"))
+      (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
+            t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter)))
+            t2 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations settings)))]
+        (fn [] (stop-it counter change-iterations settings
+                       t1 t2
+                       generation-dir))))))
 
-      (fn [] (stop-it counter change-iterations settings
-                     trigger-g17519 trigger-g17518
-                     generation-dir)))))
-
-(def sleep-time (* 1 60 1000))
+(def sleep-time (* 60 1000))
 (def run-flag (atom true))
 
 (defn event-loop []
@@ -219,9 +215,6 @@
       (Thread/sleep sleep-time)
       (stop-fn)
       (when @run-flag (recur)))))
-
-
-(set! *print-length* false)
 
 (comment
   (event-loop)
