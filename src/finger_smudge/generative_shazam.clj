@@ -163,16 +163,18 @@
       (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! [p-synth change-iterations settings]
-  (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
-        n (flatten (concat (scale (str s "2") :minor-pentatonic)
-                           (scale (str s "3") :minor-pentatonic)
-                           (scale (str s "4") :minor-pentatonic)))
+  (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+        new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
+        octaves (repeatedly 3 #(choose [1 2 3 4]))
+        note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
+                                      (scale (str root (nth octaves 1)) new-scale)
+                                      (scale (str root (nth octaves 2)) new-scale)))
         options 5
         pick-one-thing (rand-int options)
 
         wave (choose [0 1 2 3])
         clock (choose [4.0 3.0 5.0 6.0 7.0 8.0])
-        score (repeatedly 256 #(choose n))
+        score (repeatedly 256 #(choose note-choices))
         coefs (repeatedly 128 #(choose [2 1]))
         duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
         ]
