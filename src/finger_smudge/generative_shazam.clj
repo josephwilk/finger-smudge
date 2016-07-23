@@ -165,7 +165,7 @@
 (defn shake-music-params! [p-synth change-iterations settings]
   (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
-        octaves (repeatedly 3 #(choose [1 2 3 4]))
+        octaves (repeatedly 3 #(choose [1 2 3 4 5]))
         note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
                                       (scale (str root (nth octaves 1)) new-scale)
                                       (scale (str root (nth octaves 2)) new-scale)))
