@@ -2,7 +2,10 @@
   (:use [overtone.live])
   (:require [mud.timing :as time]
             [mud.core :as mud]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [taoensso.timbre :as timbre :refer (debug info warn error)]
+
+            [finger-smudge.logging])
 
   (:import [java.awt Rectangle Dimension Robot Toolkit]
            [java.awt.image BufferedImage]
@@ -135,12 +138,9 @@
 (defn stop-it [counter change-iterations settings
                trigger-1 trigger-2
                generation-dir]
-  (println @counter)
-  (println @change-iterations)
-  (println @settings)
-
   (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}]
-    (spit (str generation-dir "state.edn") (str state)))
+    (info state)
+    (spit (pr-str generation-dir "state.edn") (str state)))
 
   (reset! counter 0)
   (reset! change-iterations 0)
@@ -162,7 +162,7 @@
         test-pixel (.getRGB img 2230 72)]
     (when (= -15570434 test-pixel)
       (swap! counter inc)
-      (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
+      (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
       (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! [p-synth change-iterations settings]
@@ -191,7 +191,7 @@
       4 (do (swap! settings concat {:duration duration})
             (mud/pattern! dur-b duration)))
     (swap! change-iterations inc)
-    (println (str {:change-no @change-iterations :mutated pick-one-thing}))))
+    (info (str {:change-no @change-iterations :mutated pick-one-thing}))))
 
 (defn go []
   (def counter (atom 0))
@@ -225,5 +225,5 @@
 
 (comment
   (event-loop)
-
+  (reset! run-flag false)
   )
