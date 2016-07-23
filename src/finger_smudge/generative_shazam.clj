@@ -210,14 +210,15 @@
                      trigger-g17519 trigger-g17518
                      generation-dir)))))
 
-(def sleep-time (* 60 1000))
+(def sleep-time (* 1 60 1000))
+(def run-flag (atom true))
 
 (defn event-loop []
   (loop []
     (let [stop-fn (go)]
       (Thread/sleep sleep-time)
       (stop-fn)
-      (recur))))
+      (when @run-flag (recur)))))
 
 (comment
   (event-loop)
