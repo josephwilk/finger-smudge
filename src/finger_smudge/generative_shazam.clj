@@ -133,10 +133,15 @@
 (def root "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge")
 
 (defn stop-it [counter change-iterations settings
-               trigger-1 trigger-2]
+               trigger-1 trigger-2
+               generation-dir]
   (println @counter)
   (println @change-iterations)
   (println @settings)
+
+  (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}]
+    (spit (str generation-dir "state.edn") (str state)))
+
   (reset! counter 0)
   (reset! change-iterations 0)
   (reset! settings [])
@@ -144,9 +149,12 @@
   (kill plucked-string)
   (mud/remove-beat-trigger trigger-1)
   (mud/remove-beat-trigger trigger-2)
-  (mud/remove-all-beat-triggers))
+  (mud/remove-all-beat-triggers)
 
-(defn take-screenshot [start-ts counter]
+
+  )
+
+(defn take-screenshot [generation-dir start-ts counter]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
         rt (new Robot)
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
@@ -155,7 +163,7 @@
     (when (= -15570434 test-pixel)
       (swap! counter inc)
       (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
-      (ImageIO/write img "jpg" (new File (str "resources/generations/" start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
+      (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
 (defn shake-music-params! [p-synth change-iterations settings]
   (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
@@ -190,14 +198,17 @@
   (def change-iterations (atom 0))
   (def settings (atom []))
   (let [t (System/currentTimeMillis)
-        generation-dir (str root "/resources/generations/" t "/screenshots")]
-    (io/make-parents (str generation-dir "/blah"))
+        generation-dir (str root "/resources/generations/" t "/")
+        screenshot-dir (str generation-dir "/screenshots")]
+    (io/make-parents (str screenshot-dir "/blah")) ;; Lazy create dirs
     (recording-start (str generation-dir "/generative.wav"))
     (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
-      (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
+      (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter))))
       (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))
 
-      (fn [] (stop-it counter change-iterations settings trigger-g17519 trigger-g17518)))))
+      (fn [] (stop-it counter change-iterations settings
+                     trigger-g17519 trigger-g17518
+                     generation-dir)))))
 
 (defn event-loop []
   (loop []
