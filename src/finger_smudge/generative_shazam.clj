@@ -204,7 +204,7 @@
     (recording-start (str generation-dir "/generative.wav"))
     (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
       (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter))))
-      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))
+      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations settings))))
 
       (fn [] (stop-it counter change-iterations settings
                      trigger-g17519 trigger-g17518
