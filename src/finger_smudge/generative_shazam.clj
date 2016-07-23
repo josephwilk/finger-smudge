@@ -192,15 +192,32 @@
     (swap! change-iterations inc)
     (info (str {:change-no @change-iterations :mutated pick-one-thing}))))
 
+(defn new-music-state! [settings]
+  (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+        new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
+        octaves (repeatedly 3 #(choose [1 2 3 4 5]))
+        note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
+                                      (scale (str root (nth octaves 1)) new-scale)
+                                      (scale (str root (nth octaves 2)) new-scale)))
+        wave (choose [0 1 2 3])
+        clock (choose [4.0 3.0 5.0 6.0 7.0 8.0])
+        score (repeatedly 256 #(choose note-choices))
+        coefs (repeatedly 128 #(choose [2 1]))
+        duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
+
+        state {:wave wave :clock clock :score score :coefs coefs :duration duration :root root :scale new-scale :octaves octaves}]
+    (ctl p-synth :wave wave)
+    (mud/ctl-global-clock   clock)
+    (mud/pattern! notes        score)
+    (mud/pattern! coef-b       coefs)
+    (mud/pattern! dur-b duration)
+
+    state))
+
 (defn go []
   (let [counter (atom 0)
         change-iterations (atom 0)
-        settings (atom [])]
-
-    (mud/pattern! notes  [0])
-    (mud/pattern! coef-b [0])
-    (mud/pattern! dur-b  [0])
-
+        settings (atom [(new-music-state!)])]
     (let [t (System/currentTimeMillis)
           generation-dir (str root "/resources/generations/" t "/")
           screenshot-dir (str generation-dir "/screenshots")]
