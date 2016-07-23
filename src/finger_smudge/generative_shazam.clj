@@ -132,12 +132,18 @@
 
 (def root "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge")
 
-(defn stop-it []
+(defn stop-it [counter change-iterations settings
+               trigger-1 trigger-2]
   (println @counter)
+  (println @change-iterations)
+  (println @settings)
   (reset! counter 0)
+  (reset! change-iterations 0)
+  (reset! settings [])
   (recording-stop)
   (kill plucked-string)
-  (mud/remove-beat-trigger trigger-g17519)
+  (mud/remove-beat-trigger trigger-1)
+  (mud/remove-beat-trigger trigger-2)
   (mud/remove-all-beat-triggers))
 
 (defn take-screenshot [start-ts counter]
@@ -151,38 +157,55 @@
       (println (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
       (ImageIO/write img "jpg" (new File (str "resources/generations/" start-ts "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
-(defn shake-music-params! [p-synth change-iterations]
+(defn shake-music-params! [p-synth change-iterations settings]
   (let [s (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         n (flatten (concat (scale (str s "2") :minor-pentatonic)
                            (scale (str s "3") :minor-pentatonic)
                            (scale (str s "4") :minor-pentatonic)))
-        options 6
-        pick-one-thing (rand-int options)]
+        options 5
+        pick-one-thing (rand-int options)
+
+        wave (choose [0 1 2 3])
+        clock (choose [4.0 3.0 5.0 6.0 7.0 8.0])
+        score (repeatedly 256 #(choose n))
+        coefs (repeatedly 128 #(choose [2 1]))
+        duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
+        ]
     (case pick-one-thing
-      0 (ctl p-synth :wave (choose [0 1 2 3]))
-      1 (mud/ctl-global-clock      (choose [4.0 3.0 5.0 6.0 7.0 8.0]))
-      2 (mud/pattern! notes        (repeatedly 256 #(choose n)))
-      3 (mud/pattern! coef-b       (repeatedly 128 #(choose [2 1])))
-      ;;      4 (mud/pattern! hats-buf     (repeatedly 32 #(choose [0 0 0 0])))
-      ;;      5 (mud/pattern! kick-seq-buf (repeatedly 32 #(choose [0 0 0 0])))
-      4 (mud/pattern! hats-amp     (repeatedly 32 #(choose [0 4.0 4.0])))
-      5 (mud/pattern! dur-b        (repeatedly 256 #(choose [4 4 5 5 6 6]))))
+      0 (do (swap! settings concat {:wave wave})
+            (ctl p-synth :wave wave))
+      1 (do (swap! settings concat {:clock clock})
+            (mud/ctl-global-clock   clock))
+      2 (do (swap! settings concat {:score score})
+            (mud/pattern! notes        score))
+      3 (do (swap! settings concat {:coefs coefs})
+            (mud/pattern! coef-b       coefs))
+      4 (do (swap! settings concat {:duration duration})
+            (mud/pattern! dur-b duration)))
     (swap! change-iterations inc)
     (println (str {:change-no @change-iterations :mutated pick-one-thing}))))
 
 (defn go []
   (def counter (atom 0))
   (def change-iterations (atom 0))
+  (def settings (atom []))
   (let [t (System/currentTimeMillis)
         generation-dir (str root "/resources/generations/" t "/screenshots")]
     (io/make-parents (str generation-dir "/blah"))
     (recording-start (str generation-dir "/generative.wav"))
     (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)]
       (def trigger-g17519 (mud/on-beat-trigger 1  (fn [] (take-screenshot t counter))))
-      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))))
-  )
+      (def trigger-g17518 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations))))
+
+      (fn [] (stop-it counter change-iterations settings trigger-g17519 trigger-g17518)))))
+
+(defn event-loop []
+  (loop []
+    (let [stop-fn (go)]
+      (Thread/sleep (* 60 1000))
+      (stop-fn))))
 
 (comment
-  (go)
-  (stop-it)
+  (event-loop)
+
   )
