@@ -194,6 +194,11 @@
   (let [counter (atom 0)
         change-iterations (atom 0)
         settings (atom [])]
+
+    (mud/pattern! notes  [0])
+    (mud/pattern! coef-b [0])
+    (mud/pattern! dur-b  [0])
+
     (let [t (System/currentTimeMillis)
           generation-dir (str root "/resources/generations/" t "/")
           screenshot-dir (str generation-dir "/screenshots")]
