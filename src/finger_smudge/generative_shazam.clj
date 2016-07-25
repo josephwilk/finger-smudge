@@ -176,10 +176,13 @@
   (let [current-buffer-size max-buffer-size
         root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
-        octaves (repeatedly 3 #(choose [1 2 3 4 5]))
-        note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
-                                      (scale (str root (nth octaves 1)) new-scale)
-                                      (scale (str root (nth octaves 2)) new-scale)))
+
+        octave-no (int (ranged-rand 3 8))
+        octaves (repeatedly octave-no #(choose [1 2 3 4 5]))
+        note-choices (mapcat (fn [octave]
+                               (scale (str root octave) new-scale))
+                             octaves)
+
         wave     (choose [0 1 2 3])
         clock    (choose [4.0 3.0 5.0 6.0 7.0 8.0])
         score    (repeatedly current-buffer-size #(choose note-choices))
@@ -187,8 +190,32 @@
         duration (repeatedly current-buffer-size #(choose [4 4 5 5 6 6]))
 
         state {:wave wave :clock clock :score score :coefs coefs :duration duration
-               :root root :scale new-scale :octaves octaves}]
+               :root root :scale new-scale :octaves octaves :scale new-scale}]
     state))
+
+(defn generate-score [state]
+  (let [pick (rand-int 3)
+        old-root (:root state)
+        old-octaves (:octaves state)
+        old-scale  (:scale state)
+
+        new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+        new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
+        new-octaves (repeatedly (int (ranged-rand 3 8)) #(choose [1 2 3 4 5]))
+
+        default-state {:root old-root :octaves old-octaves :scale old-scale}
+
+        new-state (case pick
+                    0 (assoc default-state :root new-root)
+                    1 (assoc default-state :octaves new-octaves)
+                    2 (assoc default-state :scale new-scale))]
+
+    (mapcat (fn [octave]
+              (scale (str (:root new-state) octave) (:scale new-state)))
+            (:octaves new-state))))
+
+;;(generate-score {:root "A" :scale :minor :octaves [2]})
+;;(new-music-state)
 
 (defn progress-state [settings]
   (let [old-settings (last @settings)
@@ -203,7 +230,12 @@
             1 (assoc old-settings :clock    (:clock new-settings))
             2 (assoc old-settings :score    (:score new-settings))
             3 (assoc old-settings :coefs    (:coefs new-settings))
-            4 (assoc old-settings :duration (:duration new-settings)))]
+            4 (assoc old-settings :duration (:duration new-settings))
+            ;;5 change root
+            ;;6 change scale
+            ;;7 change octaves
+
+            )]
       (info (str {:change-no (count @settings) :mutated pick-one-thing}))
       new-state)))
 
