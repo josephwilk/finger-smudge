@@ -190,29 +190,26 @@
         duration (repeatedly current-buffer-size #(choose [4 4 5 5 6 6]))
 
         state {:wave wave :clock clock :score score :coefs coefs :duration duration
-               :root root :scale new-scale :octaves octaves :scale new-scale}]
+               :root root :scale new-scale :octaves octaves}]
     state))
 
 (defn generate-score [state]
-  (let [pick (rand-int 3)
-        old-root (:root state)
-        old-octaves (:octaves state)
-        old-scale  (:scale state)
+  (let [pick (rand-int 4)
 
         new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
         new-octaves (repeatedly (int (ranged-rand 3 8)) #(choose [1 2 3 4 5]))
 
-        default-state {:root old-root :octaves old-octaves :scale old-scale}
-
         new-state (case pick
-                    0 (assoc default-state :root new-root)
-                    1 (assoc default-state :octaves new-octaves)
-                    2 (assoc default-state :scale new-scale))]
+                    0 (assoc state :root new-root)
+                    1 (assoc state :octaves new-octaves)
+                    2 (assoc state :scale new-scale)
+                    3 state)
 
-    (mapcat (fn [octave]
-              (scale (str (:root new-state) octave) (:scale new-state)))
-            (:octaves new-state))))
+        new-score (mapcat (fn [octave]
+                            (scale (str (:root new-state) octave) (:scale new-state)))
+                          (:octaves new-state))]
+    (assoc new-state :score new-score)))
 
 ;;(generate-score {:root "A" :scale :minor :octaves [2]})
 ;;(new-music-state)
@@ -228,7 +225,7 @@
           (case pick-one-thing
             0 (assoc old-settings :wave     (:wave new-settings))
             1 (assoc old-settings :clock    (:clock new-settings))
-            2 (assoc old-settings :score    (:score new-settings))
+            2 (generate-score old-settings)
             3 (assoc old-settings :coefs    (:coefs new-settings))
             4 (assoc old-settings :duration (:duration new-settings))
             ;;5 change root
