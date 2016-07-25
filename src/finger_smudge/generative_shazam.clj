@@ -221,17 +221,20 @@
       (recording-start (str generation-dir "/generative.wav"))
       (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
             t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter)))
-            t2 (mud/on-beat-trigger 128 (fn []
-                                          (let [new-state (progress-state settings)]
-                                              (swap! settings concat new-state)
-                                              (ping-synths! new-state p-synth))))]
+            t2 (mud/on-beat-trigger
+                128
+                (fn []
+                  (let [new-state (progress-state settings)]
+                    (swap! settings concat new-state)
+                    (ping-synths! new-state p-synth))))]
         (ping-synths! (last @settings) p-synth)
-        (fn [scores] (let [score
-                          (stop-it counter change-iterations settings
-                                   t1 t2
-                                   generation-dir)]
-                      (swap! scores t score)
-                      scores))))))
+        (fn [scores]
+          (let [score
+                (stop-it counter change-iterations settings
+                         t1 t2
+                         generation-dir)]
+            (swap! scores assoc t score)
+            scores))))))
 
 (def sleep-time (* 10 1000))
 (def run-flag (atom true))
