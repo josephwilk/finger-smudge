@@ -12,10 +12,12 @@
            [java.io File IOException]
            [javax.imageio ImageIO]))
 
+(def buffer-size 512)
+
 (do
-  (defonce coef-b (buffer 128))
-  (defonce notes (buffer 256))
-  (defonce dur-b (buffer 256))
+  (defonce coef-b (buffer buffer-sizes))
+  (defonce notes  (buffer buffer-sizes))
+  (defonce dur-b  (buffer buffer-sizes))
   (definst plucked-string [amp 0.8 decay 30 coef 0.3 gate 1
                            release 0.2
                            attack 0.03
@@ -115,21 +117,22 @@
 (defonce bass-notes-buf (buffer 16))
 (defonce power-kick-seq-buf (buffer 16))
 
-(mud/pattern! dur-b (repeatedly 256 #(choose [1])))
-(mud/pattern! coef-b (repeatedly 128 #(choose [4])))
-(mud/pattern! notes (repeatedly 256 #(choose (scale :C3 :major))))
+(comment
+  (mud/pattern! dur-b (repeatedly 256 #(choose [1])))
+  (mud/pattern! coef-b (repeatedly 128 #(choose [4])))
+  (mud/pattern! notes (repeatedly 256 #(choose (scale :C3 :major))))
 
-(mud/one-time-beat-trigger
- 15 16
- (fn []
-   (do
-     (defonce hats-buf (buffer 256)) (defonce hats-amp (buffer 256)) (defonce hat-verb (buffer 256))
-     (mud/pattern! hats-amp [4 4 4 4])
-     (mud/pattern! hat-verb[1.0])
-     ;;(kill whitenoise-hat2)
-     (def white (whitenoise-hat2 [:head drums-g] :amp-buf hats-amp :seq-buf hats-buf :beat-bus (:count time/beat-1th) :beat-trg-bus (:beat time/beat-1th) :num-steps 16 :release 0.1 :attack 0.0 :beat-num 0))(ctl white :amp-buf hats-amp)
-     (ctl white :attack 0.002 :release 0.04 :amp 0.0)
-     (when kicker (ctl kicker :amp 0.0)))))
+  (mud/one-time-beat-trigger
+   15 16
+   (fn []
+     (do
+       (defonce hats-buf (buffer 256)) (defonce hats-amp (buffer 256)) (defonce hat-verb (buffer 256))
+       (mud/pattern! hats-amp [4 4 4 4])
+       (mud/pattern! hat-verb[1.0])
+       ;;(kill whitenoise-hat2)
+       (def white (whitenoise-hat2 [:head drums-g] :amp-buf hats-amp :seq-buf hats-buf :beat-bus (:count time/beat-1th) :beat-trg-bus (:beat time/beat-1th) :num-steps 16 :release 0.1 :attack 0.0 :beat-num 0))(ctl white :amp-buf hats-amp)
+       (ctl white :attack 0.002 :release 0.04 :amp 0.0)
+       (when kicker (ctl kicker :amp 0.0))))))
 
 ;;(kill plucked-string)
 
@@ -158,10 +161,10 @@
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
         t (System/currentTimeMillis)
         test-pixel (.getRGB img 2230 72)]
-    (swap! dec hit)
+    (swap! hit dec)
     (when (= -15570434 test-pixel)
       (when (<= @hit 0)
-        (reset! hit 12)
+        (reset! hit 22)
         (swap! counter inc)
         (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
         (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg")))))))
@@ -170,17 +173,18 @@
   (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
 
 (defn new-music-state []
-  (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+  (let [current-buffer-size buffer-size
+        root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
         octaves (repeatedly 3 #(choose [1 2 3 4 5]))
         note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
                                       (scale (str root (nth octaves 1)) new-scale)
                                       (scale (str root (nth octaves 2)) new-scale)))
-        wave (choose [0 1 2 3])
-        clock (choose [4.0 3.0 5.0 6.0 7.0 8.0])
-        score (repeatedly 256 #(choose note-choices))
-        coefs (repeatedly 128 #(choose [2 1]))
-        duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
+        wave     (choose [0 1 2 3])
+        clock    (choose [4.0 3.0 5.0 6.0 7.0 8.0])
+        score    (repeatedly current-buffer-size #(choose note-choices))
+        coefs    (repeatedly current-buffer-size #(choose [2 1]))
+        duration (repeatedly current-buffer-size #(choose [4 4 5 5 6 6]))
 
         state {:wave wave :clock clock :score score :coefs coefs :duration duration
                :root root :scale new-scale :octaves octaves}]
@@ -257,8 +261,9 @@
     (when @run-flag (recur))))
 
 (set! *print-length* false)
+
 (comment
   (event-loop)
   (recording-stop)
-  (reset! run-flag true)
+  (reset! run-flag false)
   )
