@@ -150,8 +150,7 @@
     (mud/remove-beat-trigger trigger-1)
     (mud/remove-beat-trigger trigger-2)
     (mud/remove-all-beat-triggers)
-    score
-    ))
+    score))
 
 (defn take-screenshot [generation-dir start-ts counter]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
@@ -164,37 +163,10 @@
       (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
       (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
 
-(defn shake-music-params! [p-synth change-iterations settings]
-  (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
-        new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
-        octaves (repeatedly 3 #(choose [1 2 3 4 5]))
-        note-choices (flatten (concat (scale (str root (nth octaves 0)) new-scale)
-                                      (scale (str root (nth octaves 1)) new-scale)
-                                      (scale (str root (nth octaves 2)) new-scale)))
-        options 5
-        pick-one-thing (rand-int options)
+(defn map-every-nth [f coll n]
+  (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
 
-        wave (choose [0 1 2 3])
-        clock (choose [4.0 3.0 5.0 6.0 7.0 8.0])
-        score (repeatedly 256 #(choose note-choices))
-        coefs (repeatedly 128 #(choose [2 1]))
-        duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
-        ]
-    (case pick-one-thing
-      0 (do (swap! settings concat {:wave wave})
-            (ctl p-synth :wave wave))
-      1 (do (swap! settings concat {:clock clock})
-            (mud/ctl-global-clock   clock))
-      2 (do (swap! settings concat {:score score})
-            (mud/pattern! notes        score))
-      3 (do (swap! settings concat {:coefs coefs})
-            (mud/pattern! coef-b       coefs))
-      4 (do (swap! settings concat {:duration duration})
-            (mud/pattern! dur-b duration)))
-    (swap! change-iterations inc)
-    (info (str {:change-no @change-iterations :mutated pick-one-thing}))))
-
-(defn new-music-state! [settings]
+(defn new-music-state []
   (let [root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
         octaves (repeatedly 3 #(choose [1 2 3 4 5]))
@@ -207,21 +179,41 @@
         coefs (repeatedly 128 #(choose [2 1]))
         duration (repeatedly 256 #(choose [4 4 5 5 6 6]))
 
-        state {:wave wave :clock clock :score score :coefs coefs :duration duration :root root :scale new-scale :octaves octaves}]
-    (ctl p-synth :wave wave)
-    (mud/ctl-global-clock   clock)
-    (mud/pattern! notes        score)
-    (mud/pattern! coef-b       coefs)
-    (mud/pattern! dur-b duration)
-
+        state {:wave wave :clock clock :score score :coefs coefs :duration duration
+               :root root :scale new-scale :octaves octaves}]
     state))
+
+(defn progress-state [settings]
+  (let [old-settings (last @settings)
+        new-settings (new-music-state)
+
+        options 5
+        pick-one-thing (rand-int options)]
+    (println old-settings)
+    (let [new-state
+          (case pick-one-thing
+            0 (assoc old-settings :wave     (:wave new-settings))
+            1 (assoc old-settings :clock    (:clock new-settings))
+            2 (assoc old-settings :score    (:score new-settings))
+            3 (assoc old-settings :coefs    (:coefs new-settings))
+            4 (assoc old-settings :duration (:duration new-settings)))]
+      (info (str {:change-no (count @settings) :mutated pick-one-thing}))
+      new-state)))
+
+(defn ping-synths! [settings p-synth]
+  (ctl p-synth :wave    (:wave settings))
+  (mud/ctl-global-clock (:clock settings))
+  (mud/pattern! notes   (:score settings))
+  (mud/pattern! coef-b  (:coefs settings))
+  (mud/pattern! dur-b   (:duration settings)))
 
 (def global-scores (atom {}))
 
 (defn go []
   (let [counter (atom 0)
         change-iterations (atom 0)
-        settings (atom [(new-music-state!)])]
+        settings (atom [(new-music-state)])]
+    (info (str "Initial state: " (last@settings)))
     (let [t (System/currentTimeMillis)
           generation-dir (str root "/resources/generations/" t "/")
           screenshot-dir (str generation-dir "/screenshots")]
@@ -229,15 +221,19 @@
       (recording-start (str generation-dir "/generative.wav"))
       (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
             t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter)))
-            t2 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations settings)))]
+            t2 (mud/on-beat-trigger 128 (fn []
+                                          (let [new-state (progress-state settings)]
+                                              (swap! settings concat new-state)
+                                              (ping-synths! new-state p-synth))))]
+        (ping-synths! (last @settings) p-synth)
         (fn [scores] (let [score
-                    (stop-it counter change-iterations settings
-                             t1 t2
-                             generation-dir)]
-                (swap! scores t score)
-                scores))))))
+                          (stop-it counter change-iterations settings
+                                   t1 t2
+                                   generation-dir)]
+                      (swap! scores t score)
+                      scores))))))
 
-(def sleep-time (* 60 1000))
+(def sleep-time (* 10 1000))
 (def run-flag (atom true))
 
 (defn event-loop []
@@ -252,5 +248,6 @@
 
 (comment
   (event-loop)
-  (reset! run-flag false)
+  (recording-stop)
+  (reset! run-flag true)
   )
