@@ -205,9 +205,10 @@
                     2 (assoc state :scale new-scale)
                     3 state)
 
-        new-score (mapcat (fn [octave]
+        new-notes (mapcat (fn [octave]
                             (scale (str (:root new-state) octave) (:scale new-state)))
-                          (:octaves new-state))]
+                          (:octaves new-state))
+        new-score (repeatedly max-buffer-size #(choose new-notes))]
     (assoc new-state :score new-score)))
 
 ;;(generate-score {:root "A" :scale :minor :octaves [2]})
@@ -219,19 +220,13 @@
 
         options 5
         pick-one-thing (rand-int options)]
-    (println old-settings)
     (let [new-state
           (case pick-one-thing
             0 (assoc old-settings :wave     (:wave new-settings))
             1 (assoc old-settings :clock    (:clock new-settings))
             2 (generate-score old-settings)
             3 (assoc old-settings :coefs    (:coefs new-settings))
-            4 (assoc old-settings :duration (:duration new-settings))
-            ;;5 change root
-            ;;6 change scale
-            ;;7 change octaves
-
-            )]
+            4 (assoc old-settings :duration (:duration new-settings)))]
       (info (str {:change-no (count @settings) :mutated pick-one-thing}))
       new-state)))
 
@@ -248,7 +243,7 @@
   (let [counter (atom 0)
         change-iterations (atom 0)
         settings (atom [(new-music-state)])]
-    (info (str "Initial state: " (last@settings)))
+    (info (str "Initial state: " (last @settings)))
     (let [t (System/currentTimeMillis)
           generation-dir (str root "/resources/generations/" t "/")
           screenshot-dir (str generation-dir "/screenshots")]
@@ -262,7 +257,7 @@
                 128
                 (fn []
                   (let [new-state (progress-state settings)]
-                    (swap! settings concat new-state)
+                    (swap! settings concat [new-state])
                     (ping-synths! new-state p-synth))))]
         (ping-synths! (last @settings) p-synth)
         (fn [scores]
