@@ -144,7 +144,7 @@
   (let [state {:counter @counter :change-iterations @change-iterations :settings @settings :generation generation-dir}
         score @counter]
     (info (pr-str state))
-    (spit (str generation-dir "state.edn") (str state))
+    (spit (str generation-dir "state.edn") (str state) :append true)
     (reset! counter 0)
     (reset! change-iterations 0)
     (reset! settings [])
@@ -254,7 +254,8 @@
       (let [stop-fn (go)]
         (Thread/sleep sleep-time)
         (stop-fn global-scores)
-        (info (str @global-scores)))
+        (info (str @global-scores))
+        (spit "global-scores.edn" (str @global-scores) :append true))
       (catch Exception e
         (recording-stop)
         (error e)))
