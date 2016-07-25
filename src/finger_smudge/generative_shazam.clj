@@ -12,12 +12,12 @@
            [java.io File IOException]
            [javax.imageio ImageIO]))
 
-(def buffer-size 512)
+(def max-buffer-size 512)
 
 (do
-  (defonce coef-b (buffer buffer-sizes))
-  (defonce notes  (buffer buffer-sizes))
-  (defonce dur-b  (buffer buffer-sizes))
+  (defonce coef-b (buffer max-buffer-size))
+  (defonce notes  (buffer max-buffer-size))
+  (defonce dur-b  (buffer max-buffer-size))
   (definst plucked-string [amp 0.8 decay 30 coef 0.3 gate 1
                            release 0.2
                            attack 0.03
@@ -173,7 +173,7 @@
   (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
 
 (defn new-music-state []
-  (let [current-buffer-size buffer-size
+  (let [current-buffer-size max-buffer-size
         root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
         octaves (repeatedly 3 #(choose [1 2 3 4 5]))
