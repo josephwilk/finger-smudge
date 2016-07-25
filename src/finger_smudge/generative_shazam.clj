@@ -161,12 +161,11 @@
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
         t (System/currentTimeMillis)
         test-pixel (.getRGB img 2230 72)]
-    (swap! hit dec)
     (when (= -15570434 test-pixel)
-      (when (<= @hit 0)
-        (reset! hit 22)
+      (when (>= (- t @hit) (* 5 1000))
+        (reset! hit t)
         (swap! counter inc)
-        (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
+        (info (str "Match found: [" t "] Track position: " (quot (/ (- t start-ts) 1000) 60)))
         (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg")))))))
 
 (defn map-every-nth [f coll n]
