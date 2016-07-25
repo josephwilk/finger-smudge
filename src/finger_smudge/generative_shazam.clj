@@ -138,18 +138,20 @@
 (defn stop-it [counter change-iterations settings
                trigger-1 trigger-2
                generation-dir]
-  (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}]
+  (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}
+        score @counter]
     (info (pr-str state))
-    (spit (pr-str generation-dir "state.edn") (str state)))
-  (reset! counter 0)
-  (reset! change-iterations 0)
-  (reset! settings [])
-  (recording-stop)
-  (kill plucked-string)
-  (mud/remove-beat-trigger trigger-1)
-  (mud/remove-beat-trigger trigger-2)
-  (mud/remove-all-beat-triggers)
-  )
+    (spit (pr-str generation-dir "state.edn") (str state))
+    (reset! counter 0)
+    (reset! change-iterations 0)
+    (reset! settings [])
+    (recording-stop)
+    (kill plucked-string)
+    (mud/remove-beat-trigger trigger-1)
+    (mud/remove-beat-trigger trigger-2)
+    (mud/remove-all-beat-triggers)
+    score
+    ))
 
 (defn take-screenshot [generation-dir start-ts counter]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
@@ -214,6 +216,8 @@
 
     state))
 
+(def global-scores (atom {}))
+
 (defn go []
   (let [counter (atom 0)
         change-iterations (atom 0)
@@ -226,9 +230,12 @@
       (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
             t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter)))
             t2 (mud/on-beat-trigger 128 (fn [] (shake-music-params! p-synth change-iterations settings)))]
-        (fn [] (stop-it counter change-iterations settings
-                       t1 t2
-                       generation-dir))))))
+        (fn [scores] (let [score
+                    (stop-it counter change-iterations settings
+                             t1 t2
+                             generation-dir)]
+                (swap! scores t score)
+                scores))))))
 
 (def sleep-time (* 60 1000))
 (def run-flag (atom true))
@@ -237,7 +244,8 @@
   (loop []
     (let [stop-fn (go)]
       (Thread/sleep sleep-time)
-      (stop-fn)
+      (stop-fn global-scores)
+      (info (str @global-scores))
       (when @run-flag (recur)))))
 
 (set! *print-length* false)
