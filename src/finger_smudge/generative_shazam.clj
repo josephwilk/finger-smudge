@@ -152,16 +152,19 @@
     (mud/remove-all-beat-triggers)
     score))
 
-(defn take-screenshot [generation-dir start-ts counter]
+(defn take-screenshot [generation-dir start-ts counter hit]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
         rt (new Robot)
         img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
         t (System/currentTimeMillis)
         test-pixel (.getRGB img 2230 72)]
+    (swap! dec hit)
     (when (= -15570434 test-pixel)
-      (swap! counter inc)
-      (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
-      (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg"))))))
+      (when (<= @hit 0)
+        (reset! hit 12)
+        (swap! counter inc)
+        (info (str "Match found: [" t "] Track position: " (/ (/ (- t start-ts) 1000) 60)))
+        (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg")))))))
 
 (defn map-every-nth [f coll n]
   (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
@@ -219,8 +222,10 @@
           screenshot-dir (str generation-dir "/screenshots")]
       (io/make-parents (str screenshot-dir "/blah")) ;; Lazy create dirs
       (recording-start (str generation-dir "/generative.wav"))
-      (let [p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
-            t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter)))
+
+      (let [shazam-hit (atom 0)
+            p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
+            t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter shazam-hit)))
             t2 (mud/on-beat-trigger
                 128
                 (fn []
@@ -236,7 +241,7 @@
             (swap! scores assoc t score)
             scores))))))
 
-(def sleep-time (* 10 1000))
+(def sleep-time (* 60 1000))
 (def run-flag (atom true))
 
 (defn event-loop []
@@ -252,7 +257,7 @@
     (when @run-flag (recur))))
 
 (set! *print-length* false)
-
+(stop-all)
 (comment
   (event-loop)
   (recording-stop)
