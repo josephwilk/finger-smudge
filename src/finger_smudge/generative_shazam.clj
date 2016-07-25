@@ -257,7 +257,6 @@
     (when @run-flag (recur))))
 
 (set! *print-length* false)
-(stop-all)
 (comment
   (event-loop)
   (recording-stop)
