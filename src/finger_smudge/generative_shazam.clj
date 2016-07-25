@@ -138,10 +138,10 @@
 (defn stop-it [counter change-iterations settings
                trigger-1 trigger-2
                generation-dir]
-  (let [state {:counter @counter :change-iterations @change-iterations :settings @settings}
+  (let [state {:counter @counter :change-iterations @change-iterations :settings @settings :generation generation-dir}
         score @counter]
     (info (pr-str state))
-    (spit (pr-str generation-dir "state.edn") (str state))
+    (spit (str generation-dir "state.edn") (str state))
     (reset! counter 0)
     (reset! change-iterations 0)
     (reset! settings [])
@@ -238,11 +238,15 @@
 
 (defn event-loop []
   (loop []
-    (let [stop-fn (go)]
-      (Thread/sleep sleep-time)
-      (stop-fn global-scores)
-      (info (str @global-scores))
-      (when @run-flag (recur)))))
+    (try
+      (let [stop-fn (go)]
+        (Thread/sleep sleep-time)
+        (stop-fn global-scores)
+        (info (str @global-scores)))
+      (catch Exception e
+        (recording-stop)
+        (error e)))
+    (when @run-flag (recur))))
 
 (set! *print-length* false)
 
