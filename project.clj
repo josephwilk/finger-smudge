@@ -19,7 +19,7 @@
                  [overtone "0.9.1"]
                  [net.mikera/vectorz-clj "0.29.0"]
                  [net.mikera/imagez "0.10.0"]
-
+                 [image-resizer "0.1.9"]
                  [mud "0.1.0-SNAPSHOT"]
                  [com.taoensso/timbre "4.7.0"]]
   :jvm-opts ["-Xmx2048m"])

@@ -4,6 +4,9 @@
             [mud.core :as mud]
             [clojure.java.io :as io]
             [taoensso.timbre :as timbre :refer (debug info warn error)]
+            [clojure.edn :as edn]
+            [image-resizer.core :as resizer]
+            [clojure.java.shell :as shell]
 
             [finger-smudge.logging])
 
@@ -155,18 +158,32 @@
     (mud/remove-all-beat-triggers)
     score))
 
+
+(def text-matches (atom []))
+
+(defn img->text [img]
+  (let [r  (shell/sh "tesseract" img "stdout")
+        noisey-text (clojure.string/split (:out r) #"\n")
+        text (remove clojure.string/blank? noisey-text)]
+    (when (not (clojure.string/blank? (:err r)))  (str (error (:err r))))
+    (clojure.string/join "\n" (flatten text))))
+
 (defn take-screenshot [generation-dir start-ts counter hit]
   (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
+        width (.getWidth screen)
         rt (new Robot)
-        img (.createScreenCapture rt (new Rectangle (int (.getWidth screen)) (int (.getHeight screen))))
+        img (.createScreenCapture rt (new Rectangle (- width 350) 35 350 75))
         t (System/currentTimeMillis)
-        test-pixel (.getRGB img 2230 72)]
-    (when (= -15570434 test-pixel)
-      (when (>= (- t @hit) (* 5 1000))
+        test-pixel (.getRGB img 30 40)]
+    (when (or (= -3350273 test-pixel))
+      (when (>= (- t @hit) (* 6 1000))
         (reset! hit t)
         (swap! counter inc)
-        (info (str "Match found: [" t "] Track position: " (quot (/ (- t start-ts) 1000) 60)))
-        (ImageIO/write img "jpg" (new File (str generation-dir "/screenshots/" t "-" test-pixel "-" ".jpg")))))))
+        (let [f (str generation-dir t ".png")]
+          (ImageIO/write img "png" (new File f))
+          (let [text (img->text f)]
+            (swap! text-matches concat [text])
+            (info (str "Match found: [" t "] Text: [" text  "] Track position: " (float (/ (- t start-ts) 1000))))))))))
 
 (defn map-every-nth [f coll n]
   (map-indexed #(if (zero? (mod (inc %1) n)) (f %2) %2) coll))
@@ -176,7 +193,7 @@
         root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
 
-        octave-no (int (ranged-rand 3 8))
+        octave-no (int (ranged-rand 2 16))
         octaves (repeatedly octave-no #(choose [1 2 3 4 5]))
         note-choices (mapcat (fn [octave]
                                (scale (str root octave) new-scale))
@@ -197,7 +214,7 @@
 
         new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
-        new-octaves (repeatedly (int (ranged-rand 3 8)) #(choose [1 2 3 4 5]))
+        new-octaves (repeatedly (int (ranged-rand 2 16)) #(choose [1 2 3 4 5]))
 
         new-state (case pick
                     0 (assoc state :root new-root)
@@ -245,9 +262,8 @@
         settings (atom [(new-music-state)])]
     (info (str "Initial state: " (last @settings)))
     (let [t (System/currentTimeMillis)
-          generation-dir (str root "/resources/generations/" t "/")
-          screenshot-dir (str generation-dir "/screenshots")]
-      (io/make-parents (str screenshot-dir "/blah")) ;; Lazy create dirs
+          generation-dir (str root "/resources/generations/" t "/")]
+      (io/make-parents (str generation-dir "/blah")) ;; Lazy create dirs
       (recording-start (str generation-dir "/generative.wav"))
 
       (let [shazam-hit (atom 0)
@@ -268,8 +284,27 @@
             (swap! scores assoc t score)
             scores))))))
 
-(def sleep-time (* 60 1000))
+(def sleep-time (* 2 60 1000))
 (def run-flag (atom true))
+
+(defn delete-recursively [fname]
+  (let [func (fn [func f]
+               (when (.isDirectory f)
+                 (doseq [f2 (.listFiles f)]
+                   (func func f2)))
+               (clojure.java.io/delete-file f))]
+    (func func (clojure.java.io/file fname))))
+
+(defn purge []
+  (let [data (str "["
+                  (clojure.string/join ","
+                                       (clojure.string/split (slurp "global-scores.edn") #"\n"))
+
+                  "]")
+        results (into {} (edn/read-string data))
+        misses (filter (fn [[k v]] (= v 0)) results)]
+    (doseq [[k v] misses]
+      (delete-recursively (str root "/resources/generations/" k)))))
 
 (defn event-loop []
   (loop []
@@ -278,7 +313,9 @@
         (Thread/sleep sleep-time)
         (stop-fn global-scores)
         (info (str @global-scores))
-        (spit "global-scores.edn" (str @global-scores) :append true))
+        (spit "global-scores.edn" (str @global-scores "\n") :append true)
+        (spit "matches.txt" (str @text-matches "\n") :append true))
+      (Thread/sleep 500) ;;Time for shutdown
       (catch Exception e
         (recording-stop)
         (error e)))
@@ -291,3 +328,20 @@
   (recording-stop)
   (reset! run-flag false)
   )
+
+(comment
+  (shell/sh "tesseract" "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/test.jpg" "stdout")
+
+  (let [screen (.getScreenSize (Toolkit/getDefaultToolkit))
+        width (.getWidth screen)
+        rt (new Robot)
+        img (.createScreenCapture rt (new Rectangle (- width 350) 35 350 75))
+        test-pixel (.getRGB img 50 40)
+        ;;   img (resizer/resize-to-height img 1000)
+        ]
+    (println width)
+    (println test-pixel)
+    (when (= test-pixel -3420723)
+      (ImageIO/write img "png" (new File (str "test.png")))
+      (println (img->text "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/test.png")))
+    ))
