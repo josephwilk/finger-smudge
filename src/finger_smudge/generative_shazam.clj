@@ -190,7 +190,7 @@
 
 (defn new-music-state []
   (let [current-buffer-size max-buffer-size
-        root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+        root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G" "G#"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
 
         octave-no (int (ranged-rand 2 16))
@@ -212,7 +212,7 @@
 (defn generate-score [state]
   (let [pick (rand-int 4)
 
-        new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G"])
+        new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G" "G#"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
         new-octaves (repeatedly (int (ranged-rand 2 16)) #(choose [1 2 3 4 5]))
 
