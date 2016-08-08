@@ -87,7 +87,7 @@
         src (* amp (+ (* drum drum-env) (* hit hit-env)))
         src (pitch-shift src 0.4 1 0 (t-rand:ar 0.01 0.0 bar-trg))
         src (free-verb src)]
-                (out out-bus (pan2 src))))
+    (out out-bus (pan2 src))))
 
 (defsynth whitenoise-hat2 [out-bus 0
                            amp-buf 0
@@ -123,7 +123,7 @@
     (def kicker (space-kick3 [:head drums-g] :note-buf bass-notes-buf :seq-buf kick-seq-buf :num-steps 16 :beat-num 0 :noise 0.05 :amp 0.0 :mod-index 0.1 :mod-freq 4.0 :mode-freq 0.2))(ctl kicker :amp-buf kick-amp)(mud/pattern! kick-amp  [1.5 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1] (repeat 2 [1.2 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1]) [1.2 1 1 1 1 1 1 1   1.2 1 1 1 1.2 1 1.3 1])(mud/pattern! bass-notes-buf (repeat 8 (mud/degrees [1] :minor :F1))(repeat 2 (repeat 8 (mud/degrees [1] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))[(mud/degrees [1 1 1 1  5 4 3 1] :minor :F1)]))
 
 
-(ctl kicker :attack 0.0 :sustain 0.2 :amp 4.0)
+(ctl kicker :attack 0.0 :sustain 1.2 :amp 10.0 :mod-freq 32)
 
 (defonce kick-seq-buf (buffer 32))
 (defonce bass-notes-buf (buffer 16))
@@ -207,10 +207,11 @@
         note-choices (mapcat (fn [octave]
                                (scale (str root octave) new-scale))
                              octaves)
+        note-choices (shuffle (concat note-choices (take (choose [1 2 4 8 16]) (cycle [0]))))
 
-        wave     (choose [0 1 2 3])
+        wave      (choose [0 1 2 3])
         wave-base (choose [0 1 2 3 4 5 6 7 8])
-        clock    (choose [4.0 3.0 5.0 6.0 7.0 8.0])
+        clock     (choose [4.0 3.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])
         score    (repeatedly current-buffer-size #(choose note-choices))
         coefs    (repeatedly current-buffer-size #(choose [3 2 1]))
         duration (repeatedly current-buffer-size #(choose [2 2 3 3 4 4 5 5 6 6]))
@@ -220,6 +221,7 @@
                :root root :scale new-scale :octaves octaves :distortion distortion}]
     state))
 
+;;(new-music-state)
 (defn generate-score [state]
   (let [pick (rand-int 4)
 
@@ -236,7 +238,8 @@
         new-notes (mapcat (fn [octave]
                             (scale (str (:root new-state) octave) (:scale new-state)))
                           (:octaves new-state))
-        new-score (repeatedly max-buffer-size #(choose new-notes))]
+        new-score (repeatedly max-buffer-size #(choose new-notes))
+        new-score (shuffle (concat new-score (take (choose [1 2 4 8 16]) (cycle [0]))))]
     (assoc new-state :score new-score)))
 
 ;;(generate-score {:root "A" :scale :minor :octaves [2]})
@@ -250,20 +253,28 @@
         pick-one-thing (rand-int options)]
     (let [new-state
           (case pick-one-thing
-            0 (assoc old-settings :wave     (:wave new-settings))
-            1 (assoc old-settings :clock    (:clock new-settings))
+            0 (assoc old-settings :wave       (:wave new-settings))
+            1 (assoc old-settings :clock      (:clock new-settings))
             2 (generate-score old-settings)
-            3 (assoc old-settings :coefs    (:coefs new-settings))
-            4 (assoc old-settings :duration (:duration new-settings))
+            3 (assoc old-settings :coefs      (:coefs new-settings))
+            4 (assoc old-settings :duration   (:duration new-settings))
             5 (assoc old-settings :distortion (:distortion new-settings))
-            6 (assoc old-settings :wave-base (:wave-base new-settings)))]
+            6 (assoc old-settings :wave-base  (:wave-base new-settings)))]
       (info (str {:change-no (count @settings) :mutated pick-one-thing}))
       new-state)))
 
-(defn ping-synths! [settings p-synth]
-  (ctl p-synth :wave    (:wave settings))
-  (ctl p-synth :wave-core  (:wave-core settings))
-  (ctl p-synth :distortion  (:distortion settings))
+(defn ping-synths! [settings p-synth d-synth]
+  (mud/pattern! kick-seq-buf (mud/spread (choose [1 4 8]) (choose [4 8 16])))
+
+  (ctl d-synth :mod-freq (choose [2 5 8 16 32 64]))
+;; (ctl d-synth :mod-index (choose [5 4 3 2]))
+  (ctl d-synth :sustain (choose [0.4 0.1 1.0 1.5]) )
+  (ctl d-synth :noise (choose [0.025 0.1 0.0]))
+  (ctl d-synth :attack (choose [0.005 0.1 0.01]))
+
+  (ctl p-synth :wave       (:wave settings))
+  (ctl p-synth :fud        (:wave-base settings))
+  (ctl p-synth :distortion (:distortion settings))
 
   (mud/ctl-global-clock (:clock settings))
   (mud/pattern! notes   (:score settings))
@@ -272,14 +283,14 @@
 
 (def global-scores (atom {}))
 
-
-(def s (plucked-string :notes-buf notes :dur-buf dur-b :fud 4 :dist 1))
-(kill plucked-string)
-(mud/pattern! kick-seq-buf [0])
-(ctl s :dist 0 :fud 0)
-(mud/pattern! notes (take 32 (cycle (mud/degrees-seq [:f2 41243]))))
-(mud/pattern! dur-b (take 32 (cycle [2.0])))
-(mud/ctl-global-clock 4.0)
+(comment
+  (def s (plucked-string :notes-buf notes :dur-buf dur-b :fud 4 :dist 1))
+  (kill plucked-string)
+  (mud/pattern! kick-seq-buf [0])
+  (ctl s :dist 0 :fud 0)
+  (mud/pattern! notes (take 32 (cycle (mud/degrees-seq [:f2 41243]))))
+  (mud/pattern! dur-b (take 32 (cycle [2.0])))
+  (mud/ctl-global-clock 4.0))
 
 (defn go
   ([] (go 128))
@@ -295,14 +306,18 @@
 
           (let [shazam-hit (atom 0)
                 p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
+                d-synth (space-kick3 [:head drums-g] :note-buf bass-notes-buf
+                                     :seq-buf kick-seq-buf
+                                     :num-steps 16 :beat-num 0 :noise 0.05 :amp 1.0 :mod-index 0.1
+                                     :mod-freq 4.0 :mode-freq 0.2)
                 t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter shazam-hit)))
                 t2 (mud/on-beat-trigger
                     change-rate
                     (fn []
                       (let [new-state (progress-state settings)]
                         (swap! settings concat [new-state])
-                        (ping-synths! new-state p-synth))))]
-            (ping-synths! (last @settings) p-synth)
+                        (ping-synths! new-state p-synth d-synth))))]
+            (ping-synths! (last @settings) p-synth d-synth)
             (fn [scores]
               (let [score
                     (stop-it counter change-iterations settings
@@ -336,7 +351,7 @@
 (defn event-loop []
   (loop []
     (try
-      (let [stop-fn (go (choose [128 64 32 16]))]
+      (let [stop-fn (go (choose [128 64 32]))]
         (Thread/sleep sleep-time)
         (stop-fn global-scores)
         (info (str @global-scores))
@@ -353,9 +368,10 @@
 (comment
   (event-loop)
   (recording-stop)
-  (reset! run-flag false)
+  (reset! run-flag true)
   )
-
+;;(kill plucked-string)
+;;(kill space-kick3)
 (comment
   (shell/sh "tesseract" "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/test.jpg" "stdout")
 
