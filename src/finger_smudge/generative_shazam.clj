@@ -29,7 +29,9 @@
                            beat-bus (:count time/beat-1th) beat-trg-bus (:beat time/beat-1th)
                            notes-buf 0 dur-buf 0
                            mix-rate 0.5
-                           wave 0]
+                           wave 0
+                           fud 0
+                           dist 0]
     (let [cnt (in:kr beat-bus)
           trg (in:kr beat-trg-bus)
           note (buf-rd:kr 1 notes-buf cnt)
@@ -39,16 +41,23 @@
           freq   (midicps note)
           noize  (* (lf-tri freq (sin-osc:kr 0.5)))
           dly    (/ 1.0 freq)
-          plk    (pluck noize trg dly dly decay coef)
-          dist   (distort plk)
+          plk    (select:ar fud [(pluck noize trg dly dly decay coef)
+                                 (mix [(sin-osc (* freq 2.0))  (lf-saw (/ freq 2.0))  (pluck noize trg dly dly decay coef)])
+                                 (sin-osc freq)
+                                 (pitch-shift:ar (lf-saw freq) 0.2 0.2 0.2 0.2)
+                                 (lf-saw freq)
+                                 (lf-tri freq)
+                                 (lf-cub:kr freq)])
+          dist   (select:ar dist [(distort plk) plk])
           filt   (rlpf dist (* 12 freq) 0.6)
           clp    (clip2 filt 0.8)
           wave (select:ar wave [(sin-osc freq (* 2 Math/PI))
-                           (lf-saw freq (* 2 Math/PI))
-                           (lf-tri freq (* 2 Math/PI))])
+                                (lf-saw freq (* 2 Math/PI))
+                                (lf-tri freq (* 2 Math/PI))])
           clp (mix [clp
                     (* 1.01 wave)
-                    (rlpf (saw freq) 1200)])
+                    ;;(rlpf (saw freq) 1200)
+                    ])
 
           clp (comb-n clp 0.9)
           reverb clp
@@ -200,13 +209,15 @@
                              octaves)
 
         wave     (choose [0 1 2 3])
+        wave-base (choose [0 1 2 3 4 5 6 7 8])
         clock    (choose [4.0 3.0 5.0 6.0 7.0 8.0])
         score    (repeatedly current-buffer-size #(choose note-choices))
-        coefs    (repeatedly current-buffer-size #(choose [2 1]))
-        duration (repeatedly current-buffer-size #(choose [4 4 5 5 6 6]))
+        coefs    (repeatedly current-buffer-size #(choose [3 2 1]))
+        duration (repeatedly current-buffer-size #(choose [2 2 3 3 4 4 5 5 6 6]))
+        distortion (choose [0 1])
 
-        state {:wave wave :clock clock :score score :coefs coefs :duration duration
-               :root root :scale new-scale :octaves octaves}]
+        state {:wave wave :wave-base wave-base :clock clock :score score :coefs coefs :duration duration
+               :root root :scale new-scale :octaves octaves :distortion distortion}]
     state))
 
 (defn generate-score [state]
@@ -235,7 +246,7 @@
   (let [old-settings (last @settings)
         new-settings (new-music-state)
 
-        options 5
+        options 7
         pick-one-thing (rand-int options)]
     (let [new-state
           (case pick-one-thing
@@ -243,12 +254,17 @@
             1 (assoc old-settings :clock    (:clock new-settings))
             2 (generate-score old-settings)
             3 (assoc old-settings :coefs    (:coefs new-settings))
-            4 (assoc old-settings :duration (:duration new-settings)))]
+            4 (assoc old-settings :duration (:duration new-settings))
+            5 (assoc old-settings :distortion (:distortion new-settings))
+            6 (assoc old-settings :wave-base (:wave-base new-settings)))]
       (info (str {:change-no (count @settings) :mutated pick-one-thing}))
       new-state)))
 
 (defn ping-synths! [settings p-synth]
   (ctl p-synth :wave    (:wave settings))
+  (ctl p-synth :wave-core  (:wave-core settings))
+  (ctl p-synth :distortion  (:distortion settings))
+
   (mud/ctl-global-clock (:clock settings))
   (mud/pattern! notes   (:score settings))
   (mud/pattern! coef-b  (:coefs settings))
@@ -256,33 +272,44 @@
 
 (def global-scores (atom {}))
 
-(defn go []
-  (let [counter (atom 0)
-        change-iterations (atom 0)
-        settings (atom [(new-music-state)])]
-    (info (str "Initial state: " (last @settings)))
-    (let [t (System/currentTimeMillis)
-          generation-dir (str root "/resources/generations/" t "/")]
-      (io/make-parents (str generation-dir "/blah")) ;; Lazy create dirs
-      (recording-start (str generation-dir "/generative.wav"))
 
-      (let [shazam-hit (atom 0)
-            p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
-            t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter shazam-hit)))
-            t2 (mud/on-beat-trigger
-                128
-                (fn []
-                  (let [new-state (progress-state settings)]
-                    (swap! settings concat [new-state])
-                    (ping-synths! new-state p-synth))))]
-        (ping-synths! (last @settings) p-synth)
-        (fn [scores]
-          (let [score
-                (stop-it counter change-iterations settings
-                         t1 t2
-                         generation-dir)]
-            (swap! scores assoc t score)
-            scores))))))
+(def s (plucked-string :notes-buf notes :dur-buf dur-b :fud 4 :dist 1))
+(kill plucked-string)
+(mud/pattern! kick-seq-buf [0])
+(ctl s :dist 0 :fud 0)
+(mud/pattern! notes (take 32 (cycle (mud/degrees-seq [:f2 41243]))))
+(mud/pattern! dur-b (take 32 (cycle [2.0])))
+(mud/ctl-global-clock 4.0)
+
+(defn go
+  ([] (go 128))
+  ([change-rate]
+      (let [counter (atom 0)
+            change-iterations (atom 0)
+            settings (atom [(new-music-state)])]
+        (info (str "Initial state: " (last @settings)))
+        (let [t (System/currentTimeMillis)
+              generation-dir (str root "/resources/generations/" t "/")]
+          (io/make-parents (str generation-dir "/blah")) ;; Lazy create dirs
+          (recording-start (str generation-dir "/generative.wav"))
+
+          (let [shazam-hit (atom 0)
+                p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
+                t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter shazam-hit)))
+                t2 (mud/on-beat-trigger
+                    change-rate
+                    (fn []
+                      (let [new-state (progress-state settings)]
+                        (swap! settings concat [new-state])
+                        (ping-synths! new-state p-synth))))]
+            (ping-synths! (last @settings) p-synth)
+            (fn [scores]
+              (let [score
+                    (stop-it counter change-iterations settings
+                             t1 t2
+                             generation-dir)]
+                (swap! scores assoc t score)
+                scores)))))))
 
 (def sleep-time (* 2 60 1000))
 (def run-flag (atom true))
@@ -309,7 +336,7 @@
 (defn event-loop []
   (loop []
     (try
-      (let [stop-fn (go)]
+      (let [stop-fn (go (choose [128 64 32 16]))]
         (Thread/sleep sleep-time)
         (stop-fn global-scores)
         (info (str @global-scores))
