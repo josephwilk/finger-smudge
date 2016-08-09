@@ -42,12 +42,12 @@
           noize  (* (lf-tri freq (sin-osc:kr 0.5)))
           dly    (/ 1.0 freq)
           plk    (select:ar fud [(pluck noize trg dly dly decay coef)
-                                 (mix [(sin-osc (* freq 2.0))  (lf-saw (/ freq 2.0))  (pluck noize trg dly dly decay coef)])
+                                 (mix [(lf-saw (/ freq 2.0)) (pluck noize trg dly dly decay coef)])
                                  (sin-osc freq)
-                                 (pitch-shift:ar (lf-saw freq) 0.2 0.2 0.2 0.2)
+                                 (pitch-shift:ar (lf-saw freq) 0.1 0.1 0.1 0.1)
                                  (lf-saw freq)
                                  (lf-tri freq)
-                                 (lf-cub:kr freq)])
+                                 (lf-pulse:kr freq)])
           dist   (select:ar dist [(distort plk) plk])
           filt   (rlpf dist (* 12 freq) 0.6)
           clp    (clip2 filt 0.8)
@@ -119,11 +119,11 @@
         ]
         (out out-bus (pan2 (* amp src)))))
 
-(do (defonce kick-seq-buf (buffer 256)) (defonce bass-notes-buf (buffer 256)) (defonce drums-g (group "main drums")) (defonce kick-amp (buffer 256))
-    (def kicker (space-kick3 [:head drums-g] :note-buf bass-notes-buf :seq-buf kick-seq-buf :num-steps 16 :beat-num 0 :noise 0.05 :amp 0.0 :mod-index 0.1 :mod-freq 4.0 :mode-freq 0.2))(ctl kicker :amp-buf kick-amp)(mud/pattern! kick-amp  [1.5 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1] (repeat 2 [1.2 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1]) [1.2 1 1 1 1 1 1 1   1.2 1 1 1 1.2 1 1.3 1])(mud/pattern! bass-notes-buf (repeat 8 (mud/degrees [1] :minor :F1))(repeat 2 (repeat 8 (mud/degrees [1] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))[(mud/degrees [1 1 1 1  5 4 3 1] :minor :F1)]))
+(comment
+  (do (defonce kick-seq-buf (buffer 256)) (defonce bass-notes-buf (buffer 256)) (defonce drums-g (group "main drums")) (defonce kick-amp (buffer 256))
+      (def kicker (space-kick3 [:head drums-g] :note-buf bass-notes-buf :seq-buf kick-seq-buf :num-steps 16 :beat-num 0 :noise 0.05 :amp 0.0 :mod-index 0.1 :mod-freq 4.0 :mode-freq 0.2))(ctl kicker :amp-buf kick-amp)(mud/pattern! kick-amp  [1.5 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1] (repeat 2 [1.2 1 1 1 1 1 1 1   1.1 1 1 1 1 1 1 1]) [1.2 1 1 1 1 1 1 1   1.2 1 1 1 1.2 1 1.3 1])(mud/pattern! bass-notes-buf (repeat 8 (mud/degrees [1] :minor :F1))(repeat 2 (repeat 8 (mud/degrees [1] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))(repeat 2 (repeat 8 (mud/degrees [3] :minor :F1)))[(mud/degrees [1 1 1 1  5 4 3 1] :minor :F1)])))
 
-
-(ctl kicker :attack 0.0 :sustain 1.2 :amp 10.0 :mod-freq 32)
+;;(ctl kicker :attack 0.0 :sustain 1.2 :amp 10.0 :mod-freq 1)
 
 (defonce kick-seq-buf (buffer 32))
 (defonce bass-notes-buf (buffer 16))
@@ -160,6 +160,7 @@
     (reset! counter 0)
     (reset! change-iterations 0)
     (reset! settings [])
+    (Thread/sleep 1000)
     (recording-stop)
     (kill plucked-string)
     (mud/remove-beat-trigger trigger-1)
@@ -190,8 +191,8 @@
         (swap! counter inc)
         (let [f (str generation-dir t ".png")]
           (ImageIO/write img "png" (new File f))
-          (let [text (img->text f)]
-            (swap! text-matches concat [text])
+          (let [text (str (img->text f))]
+            (swap! text-matches concat [(clojure.string/join text)])
             (info (str "Match found: [" t "] Text: [" text  "] Track position: " (float (/ (- t start-ts) 1000))))))))))
 
 (defn map-every-nth [f coll n]
@@ -203,18 +204,19 @@
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
 
         octave-no (int (ranged-rand 2 16))
-        octaves (repeatedly octave-no #(choose [1 2 3 4 5]))
+        octaves (repeatedly octave-no #(choose [1 1 2 2 3 3 4 4]))
         note-choices (mapcat (fn [octave]
+                               (println (str root octave))
                                (scale (str root octave) new-scale))
                              octaves)
         note-choices (shuffle (concat note-choices (take (choose [1 2 4 8 16]) (cycle [0]))))
 
         wave      (choose [0 1 2 3])
         wave-base (choose [0 1 2 3 4 5 6 7 8])
-        clock     (choose [4.0 3.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0])
+        clock     (choose [4.0 3.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0 13.0 14.0])
         score    (repeatedly current-buffer-size #(choose note-choices))
-        coefs    (repeatedly current-buffer-size #(choose [3 2 1]))
-        duration (repeatedly current-buffer-size #(choose [2 2 3 3 4 4 5 5 6 6]))
+        coefs    (repeatedly current-buffer-size #(choose [3 2]))
+        duration (repeatedly current-buffer-size #(choose [2 2 4 4 6 6]))
         distortion (choose [0 1])
 
         state {:wave wave :wave-base wave-base :clock clock :score score :coefs coefs :duration duration
@@ -227,7 +229,7 @@
 
         new-root (choose ["A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G" "G#"])
         new-scale (choose [:minor-pentatonic :major-pentatonic :minor :major])
-        new-octaves (repeatedly (int (ranged-rand 2 16)) #(choose [1 2 3 4 5]))
+        new-octaves (repeatedly (int (ranged-rand 2 32)) #(choose [1 1 2 2 3 3 4 4]))
 
         new-state (case pick
                     0 (assoc state :root new-root)
@@ -250,7 +252,9 @@
         new-settings (new-music-state)
 
         options 7
-        pick-one-thing (rand-int options)]
+        pick-one-thing (rand-int options)
+
+        thingys [:wave :clock :score :coefs :duration :distortion :wave-base]]
     (let [new-state
           (case pick-one-thing
             0 (assoc old-settings :wave       (:wave new-settings))
@@ -260,17 +264,12 @@
             4 (assoc old-settings :duration   (:duration new-settings))
             5 (assoc old-settings :distortion (:distortion new-settings))
             6 (assoc old-settings :wave-base  (:wave-base new-settings)))]
-      (info (str {:change-no (count @settings) :mutated pick-one-thing}))
+
+      (info (str {:change-no (count @settings) :mutated (nth thingys pick-one-thing)}))
       new-state)))
 
-(defn ping-synths! [settings p-synth d-synth]
-  (mud/pattern! kick-seq-buf (mud/spread (choose [1 4 8]) (choose [4 8 16])))
-
-  (ctl d-synth :mod-freq (choose [2 5 8 16 32 64]))
-;; (ctl d-synth :mod-index (choose [5 4 3 2]))
-  (ctl d-synth :sustain (choose [0.4 0.1 1.0 1.5]) )
-  (ctl d-synth :noise (choose [0.025 0.1 0.0]))
-  (ctl d-synth :attack (choose [0.005 0.1 0.01]))
+(defn ping-synths! [settings p-synth]
+  ;;(mud/pattern! kick-seq-buf (mud/spread (choose [1 4 8]) (choose [4 8 16])))
 
   (ctl p-synth :wave       (:wave settings))
   (ctl p-synth :fud        (:wave-base settings))
@@ -306,18 +305,14 @@
 
           (let [shazam-hit (atom 0)
                 p-synth (plucked-string :notes-buf notes :dur-buf dur-b)
-                d-synth (space-kick3 [:head drums-g] :note-buf bass-notes-buf
-                                     :seq-buf kick-seq-buf
-                                     :num-steps 16 :beat-num 0 :noise 0.05 :amp 1.0 :mod-index 0.1
-                                     :mod-freq 4.0 :mode-freq 0.2)
                 t1 (mud/on-beat-trigger 1  (fn [] (take-screenshot generation-dir t counter shazam-hit)))
                 t2 (mud/on-beat-trigger
                     change-rate
                     (fn []
                       (let [new-state (progress-state settings)]
                         (swap! settings concat [new-state])
-                        (ping-synths! new-state p-synth d-synth))))]
-            (ping-synths! (last @settings) p-synth d-synth)
+                        (ping-synths! new-state p-synth))))]
+            (ping-synths! (last @settings) p-synth)
             (fn [scores]
               (let [score
                     (stop-it counter change-iterations settings
@@ -346,18 +341,22 @@
         results (into {} (edn/read-string data))
         misses (filter (fn [[k v]] (= v 0)) results)]
     (doseq [[k v] misses]
-      (delete-recursively (str root "/resources/generations/" k)))))
+      (try
+        (delete-recursively (str root "/resources/generations/" k))
+        (catch Exception e (println e))))))
+
+;;(purge)
 
 (defn event-loop []
   (loop []
     (try
-      (let [stop-fn (go (choose [128 64 32]))]
+      (let [stop-fn (go (choose [128 64 32 16 8]))]
         (Thread/sleep sleep-time)
         (stop-fn global-scores)
         (info (str @global-scores))
         (spit "global-scores.edn" (str @global-scores "\n") :append true)
-        (spit "matches.txt" (str @text-matches "\n") :append true))
-      (Thread/sleep 500) ;;Time for shutdown
+        (spit "matches.edn" (map str @text-matches) :append true))
+      (Thread/sleep 1000) ;;Time for shutdown
       (catch Exception e
         (recording-stop)
         (error e)))
@@ -368,9 +367,9 @@
 (comment
   (event-loop)
   (recording-stop)
-  (reset! run-flag true)
+  (reset! run-flag false)
   )
-;;(kill plucked-string)
+;;(kill plucked-string)y
 ;;(kill space-kick3)
 (comment
   (shell/sh "tesseract" "/Users/josephwilk/Workspace/josephwilk/clojure/finger-smudge/test.jpg" "stdout")
