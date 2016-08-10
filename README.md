@@ -3,6 +3,8 @@
 An art project producing :musical_score: music for :computer: machines. 
 Firstly exploring the digital fingerprinting of audio music. As used in sites like YouTube & SoundCloud to detect copyright infringment.
 
+Listening: https://soundcloud.com/fingerprint-smudger/tracks
+
 ![Finger smudged](https://raw.githubusercontent.com/josephwilk/finger-smudge/master/resources/finger-smudge.png)
 
 ## Chromaprint
@@ -45,8 +47,8 @@ Turns out its pretty easy to trick Shazam. To make it more interesting we consid
 
 ## Listen to the Audio Experiments
 
+* https://soundcloud.com/fingerprint-smudger/tracks
 * https://soundcloud.com/fingerprint-smudger/generative-1467636802259
-* https://soundcloud.com/josephwilk/sets/finger-smudge
 
 ## Resources
 
