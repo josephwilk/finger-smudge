@@ -41,6 +41,7 @@ Turns out its pretty easy to trick Shazam. To make it more interesting we consid
 #### Notes
 
 * Chord progressions seem to dominate detection.
+* Unsuprisingly pentatonic scale tends to do well.
 
 ## Listen to the Audio Experiments
 
@@ -58,7 +59,7 @@ Turns out its pretty easy to trick Shazam. To make it more interesting we consid
 
 ## License
 
-Copyright © 2016 Joseph Wilk
+Copyright © 2016-present Joseph Wilk
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
